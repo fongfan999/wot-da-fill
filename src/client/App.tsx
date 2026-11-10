@@ -11,6 +11,7 @@ import { addCustomFont, DEFAULT_FONT, ensureFont } from "./lib/fonts";
 import { textsForRow } from "./lib/generate";
 import { loadTemplateImage } from "./lib/image";
 import { createSampleTemplate } from "./lib/sample";
+import { useUndoable } from "./lib/useUndoable";
 import { loadSharedTemplate, shareTemplate } from "./lib/share";
 import { formatBytes, matchColumn, placeholdersIn, ROW_NUMBER } from "./lib/text";
 import type { Box, CustomFont, DataSource, Field, TemplateImage } from "./types";
@@ -19,7 +20,7 @@ const SHARE_PATH = /^\/t\/([A-Za-z0-9]{16})\/?$/;
 
 export function App() {
 	const [image, setImage] = useState<TemplateImage | null>(null);
-	const [fields, setFields] = useState<Field[]>([]);
+	const { value: fields, change: changeFields, reset: resetFields, undo, redo, canUndo, canRedo } = useUndoable<Field[]>([]);
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
 	const [source, setSource] = useState<DataSource | null>(null);
@@ -38,6 +39,10 @@ export function App() {
 	const previewIndex = Math.min(previewRow, Math.max(0, rowCount - 1));
 	const texts = useMemo(() => textsForRow(fields, table, previewIndex), [fields, table, previewIndex]);
 	const selected = fields.find((f) => f.id === selectedId) ?? null;
+	// Undo can remove the selected text area; drop the stale selection.
+	useEffect(() => {
+		if (selectedId && !selected) setSelectedId(null);
+	}, [selectedId, selected]);
 
 	const toast = useCallback((text: string, kind: ToastMessage["kind"] = "info") => {
 		const id = ++toastId.current;
@@ -55,7 +60,7 @@ export function App() {
 			.then((t) => {
 				if (cancelled) return;
 				setImage(t.image);
-				setFields(t.fields);
+				resetFields(t.fields);
 				setCustomFonts(t.customFonts);
 				setExpectedColumns(t.columns);
 				setSelectedId(t.fields[0]?.id ?? null);
@@ -70,11 +75,17 @@ export function App() {
 		return () => {
 			cancelled = true;
 		};
-	}, [toast]);
+	}, [toast, resetFields]);
 
-	const updateField = useCallback((next: Field) => {
-		setFields((fs) => fs.map((f) => (f.id === next.id ? next : f)));
-	}, []);
+	const updateField = useCallback(
+		(next: Field) => {
+			changeFields(
+				(fs) => fs.map((f) => (f.id === next.id ? next : f)),
+				mergeKeyFor(fields.find((f) => f.id === next.id), next),
+			);
+		},
+		[changeFields, fields],
+	);
 
 	// Surface font problems (e.g. a weight the family doesn't have) as soon as a field changes font.
 	const fontKey = fields.map((f) => `${f.font.source}|${f.font.family}|${f.font.weight}|${f.font.italic}`).join(";");
@@ -90,14 +101,18 @@ export function App() {
 		const cols = buildTable(next.grid, next.hasHeader).columns;
 		if (!cols.length) return;
 		// Re-point fields that only hold one placeholder for a column this list doesn't have.
-		setFields((fs) =>
-			fs.map((f) => {
+		changeFields((fs) => {
+			let changed = false;
+			const next = fs.map((f) => {
 				const ph = placeholdersIn(f.text).filter((p) => p !== ROW_NUMBER);
 				const lone = ph.length === 1 && f.text.trim() === `{${ph[0]}}`;
-				return lone && !matchColumn(ph[0], cols) ? { ...f, text: `{${cols[0]}}` } : f;
-			}),
-		);
-	}, []);
+				if (!lone || matchColumn(ph[0], cols)) return f;
+				changed = true;
+				return { ...f, text: `{${cols[0]}}` };
+			});
+			return changed ? next : fs;
+		});
+	}, [changeFields]);
 
 	const openImage = async (file: File) => {
 		if (!file.type.startsWith("image/")) return toast("That isn't an image. Use JPG, PNG or WebP.", "error");
@@ -108,8 +123,9 @@ export function App() {
 			if (image && fields.length && (image.width !== next.width || image.height !== next.height)) {
 				const kx = next.width / image.width;
 				const ky = next.height / image.height;
-				setFields((fs) =>
-					fs.map((f) => ({
+				// The old layout can't be undone back onto the new design, so the history starts over.
+				resetFields(
+					fields.map((f) => ({
 						...f,
 						box: clampBox({ x: f.box.x * kx, y: f.box.y * ky, w: f.box.w * kx, h: f.box.h * ky }, next.width, next.height),
 						fontSize: Math.round(f.fontSize * kx),
@@ -130,7 +146,7 @@ export function App() {
 		try {
 			const { blob, fields: sampleFields } = await createSampleTemplate();
 			setImage(await loadTemplateImage(blob, "sample-invitation.png"));
-			setFields(sampleFields);
+			resetFields(sampleFields);
 			setSelectedId(sampleFields[0].id);
 			if (!source) applySource(sampleSource());
 		} catch (err) {
@@ -149,7 +165,7 @@ export function App() {
 			f.color = styleFrom.color;
 			f.align = styleFrom.align;
 		}
-		setFields((fs) => [...fs, f]);
+		changeFields((fs) => [...fs, f]);
 		setSelectedId(f.id);
 	};
 
@@ -167,12 +183,12 @@ export function App() {
 			id: newField(f.box, f.text).id,
 			box: clampBox({ ...f.box, y: f.box.y + f.box.h + 10 }, image.width, image.height),
 		};
-		setFields((fs) => [...fs, copy]);
+		changeFields((fs) => [...fs, copy]);
 		setSelectedId(copy.id);
 	};
 
 	const deleteField = useCallback((f: Field) => {
-		setFields((fs) => fs.filter((x) => x.id !== f.id));
+		changeFields((fs) => fs.filter((x) => x.id !== f.id));
 		setSelectedId(null);
 	}, []);
 
@@ -192,6 +208,15 @@ export function App() {
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
 			const t = e.target as HTMLElement;
+			// Undo/redo everywhere except inside text inputs, which keep their own native undo.
+			const key = e.key.toLowerCase();
+			if ((e.metaKey || e.ctrlKey) && !e.altKey && (key === "z" || key === "y")) {
+				if (t.closest("input, textarea, select, [contenteditable], dialog")) return;
+				e.preventDefault();
+				if (key === "y" || e.shiftKey) redo();
+				else undo();
+				return;
+			}
 			// Only when the design itself (or nothing) has focus, so buttons and fields keep their own keys.
 			if (t !== document.body && !t.closest(".overlay")) return;
 			if (!selected || !image) return;
@@ -215,7 +240,7 @@ export function App() {
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-	}, [selected, image, updateField, deleteField]);
+	}, [selected, image, updateField, deleteField, undo, redo]);
 
 	const longestRow = () => {
 		if (!table) return;
@@ -241,7 +266,7 @@ export function App() {
 	const startOver = () => {
 		if ((image || source) && !confirm("Clear the design, text areas and list?")) return;
 		setImage(null);
-		setFields([]);
+		resetFields([]);
 		setSelectedId(null);
 		setSource(null);
 		setExpectedColumns([]);
@@ -319,6 +344,26 @@ export function App() {
 									)}
 								</div>
 								<div className="toolbar-right">
+									<button
+										type="button"
+										className="icon-btn"
+										aria-label="Undo"
+										title={`Undo (${MOD}Z)`}
+										disabled={!canUndo}
+										onClick={undo}
+									>
+										<Icon name="undo" />
+									</button>
+									<button
+										type="button"
+										className="icon-btn"
+										aria-label="Redo"
+										title={`Redo (${MOD === "⌘" ? "⇧⌘Z" : "Ctrl+Y"})`}
+										disabled={!canRedo}
+										onClick={redo}
+									>
+										<Icon name="redo" />
+									</button>
 									<span className="muted small dims">
 										{image.width} × {image.height} · {formatBytes(image.size)}
 									</span>
@@ -341,7 +386,7 @@ export function App() {
 								selectedId={selectedId}
 								showGuides={showGuides}
 								onSelect={setSelectedId}
-								onChangeBox={(id, box) => setFields((fs) => fs.map((f) => (f.id === id ? { ...f, box } : f)))}
+								onChangeBox={(id, box) => changeFields((fs) => fs.map((f) => (f.id === id ? { ...f, box } : f)), `${id}:box`)}
 								onCreate={createField}
 							/>
 							<p className="stage-hint muted small">
@@ -484,6 +529,17 @@ export function App() {
 		</div>
 	);
 }
+
+const MERGEABLE = new Set<keyof Field>(["text", "box", "color", "fontSize", "letterSpacing", "lineHeight"]);
+
+/** One-property continuous edits (typing, color drags, nudges) share a key so they undo as one step. */
+function mergeKeyFor(prev: Field | undefined, next: Field): string | null {
+	if (!prev) return null;
+	const changed = (Object.keys(next) as (keyof Field)[]).filter((k) => prev[k] !== next[k]);
+	return changed.length === 1 && MERGEABLE.has(changed[0]) ? `${next.id}:${changed[0]}` : null;
+}
+
+const MOD = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl+";
 
 /** Product icon: a card with a filled-in name line. Deliberately not the Wot Da Fong mark. */
 function ProductIcon() {

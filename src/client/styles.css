@@ -147,6 +147,8 @@ code,
 .app {
 	display: grid;
 	grid-template-rows: var(--topbar) 1fr;
+	/* minmax(0, ...) so the canvas can never hold the page wider than the window after a resize. */
+	grid-template-columns: minmax(0, 1fr);
 	height: 100%;
 }
 .topbar {
@@ -1537,5 +1539,28 @@ input[type="color"]::-webkit-color-swatch {
 	}
 	.coarse-pointer {
 		display: inline;
+	}
+}
+
+/* Toolbar: the row name gives way first so undo/redo always fit. */
+.row-nav {
+	flex: 1 1 auto;
+}
+.row-label {
+	flex: 0 1 auto;
+}
+.toolbar-right {
+	flex: none;
+}
+@media (max-width: 560px) {
+	.toolbar {
+		padding: 8px;
+		gap: 4px;
+	}
+	.row-nav .btn.small {
+		font-size: 0;
+		gap: 0;
+		width: 30px;
+		padding: 0;
 	}
 }
