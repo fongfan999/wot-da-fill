@@ -203,7 +203,7 @@ export function Editor({ image, fields, texts, selectedId, showGuides, onSelect,
 					ref={overlayRef}
 					tabIndex={0}
 					role="application"
-					aria-label="Design editor. Drag to add a text area; arrow keys move the selected one."
+					aria-label="Design editor. Drag to add a text box; arrow keys move the selected one."
 					className={`overlay${showGuides ? "" : " clean"}`}
 					onPointerDown={onPointerDownEmpty}
 					onPointerMove={onPointerMove}

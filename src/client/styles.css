@@ -197,8 +197,14 @@ code,
 
 .workspace {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) var(--sidebar);
+	/* The sidebar column opens once there is a design. */
+	grid-template-columns: minmax(0, 1fr) 0px;
 	min-height: 0;
+	overflow: hidden;
+	transition: grid-template-columns 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.workspace.open {
+	grid-template-columns: minmax(0, 1fr) var(--sidebar);
 }
 .canvas-col {
 	position: relative;
@@ -211,11 +217,19 @@ code,
 .sidebar {
 	display: flex;
 	flex-direction: column;
+	width: var(--sidebar);
 	min-height: 0;
+	transform: translateX(100%);
+	opacity: 0;
+	transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease;
 	overflow-y: auto;
 	border-left: 1px solid var(--line);
 	background: var(--paper);
 	scrollbar-gutter: stable;
+}
+.workspace.open .sidebar {
+	transform: none;
+	opacity: 1;
 }
 
 /* Buttons */
@@ -1209,7 +1223,6 @@ input[type="color"]::-webkit-color-swatch {
 	flex-direction: column;
 	gap: 8px;
 	padding: 16px 20px;
-	margin-top: auto;
 	border-top: 1px solid var(--line);
 	background: color-mix(in srgb, var(--paper) 92%, transparent);
 	backdrop-filter: blur(10px);
@@ -1218,6 +1231,7 @@ input[type="color"]::-webkit-color-swatch {
 }
 .credit {
 	display: flex;
+	margin-top: auto;
 	justify-content: center;
 	gap: 12px;
 	padding: 12px 20px 16px;
@@ -1503,12 +1517,17 @@ input[type="color"]::-webkit-color-swatch {
 	}
 	.workspace {
 		display: block;
+		overflow: visible;
+	}
+	.workspace:not(.open) .sidebar {
+		display: none;
 	}
 	.canvas-col {
 		min-height: 62vh;
 		height: 62vh;
 	}
 	.sidebar {
+		width: auto;
 		border-left: 0;
 		overflow: visible;
 	}

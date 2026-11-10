@@ -22,7 +22,7 @@ export function DataPanel({
 	onPreviewRow(i: number): void;
 	onError(message: string): void;
 }) {
-	const [tab, setTab] = useState<"file" | "paste">(source?.kind === "paste" ? "paste" : "file");
+	const [tab, setTab] = useState<"file" | "paste">(source?.kind === "file" ? "file" : "paste");
 	const [paste, setPaste] = useState("");
 	const [delimiter, setDelimiter] = useState<Delimiter>("auto");
 	const [loading, setLoading] = useState(false);
@@ -81,8 +81,8 @@ export function DataPanel({
 				label="List source"
 				value={tab}
 				options={[
+					{ value: "paste", label: "Paste names" },
 					{ value: "file", label: "Upload file" },
-					{ value: "paste", label: "Paste" },
 				]}
 				onChange={setTab}
 			/>
@@ -91,13 +91,13 @@ export function DataPanel({
 				<FileDrop
 					accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.ods,text/csv"
 					onFile={openFile}
-					label="Upload a CSV or Excel file"
+					label="Upload a spreadsheet"
 					className="drop-compact"
 				>
 					<Icon name="table" size={20} />
 					<span>
-						<b>{loading ? "Reading..." : source?.kind === "file" ? `Replace ${source.name}` : "Drop a CSV or Excel file"}</b>
-						<small>CSV, XLSX, XLS or ODS. One row per card.</small>
+						<b>{loading ? "Reading..." : source?.kind === "file" ? `Replace ${source.name}` : "Drop a spreadsheet"}</b>
+						<small>Excel, Google Sheets or Numbers file. One row per person.</small>
 					</span>
 				</FileDrop>
 			) : (
@@ -133,7 +133,7 @@ export function DataPanel({
 					) : null}
 					No list yet?{" "}
 					<button type="button" className="link" onClick={() => onSource(sampleSource())}>
-						Use sample guests
+						Try sample names
 					</button>
 				</p>
 			)}

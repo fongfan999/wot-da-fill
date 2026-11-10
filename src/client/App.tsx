@@ -258,13 +258,13 @@ export function App() {
 	};
 
 	const problems = [
-		!image && "Add a design",
-		!fields.length && "Mark a text area",
-		!rowCount && "Add your list",
+		!image && "upload your design",
+		!fields.length && "drag a text box onto the design",
+		!rowCount && "add your list",
 	].filter(Boolean) as string[];
 
 	const startOver = () => {
-		if ((image || source) && !confirm("Clear the design, text areas and list?")) return;
+		if ((image || source) && !confirm("Clear the design, text boxes and list?")) return;
 		setImage(null);
 		resetFields([]);
 		setSelectedId(null);
@@ -289,19 +289,15 @@ export function App() {
 							<Icon name="refresh" /> Start over
 						</button>
 					)}
-					<button
-						type="button"
-						className="btn ghost"
-						disabled={!image || !fields.length}
-						onClick={() => setSharing(true)}
-						title={!image ? "Add a design first" : "Get a link to this template"}
-					>
-						<Icon name="share" /> Share template
-					</button>
+					{image && fields.length > 0 && (
+						<button type="button" className="btn ghost" onClick={() => setSharing(true)} title="Get a link to this template">
+							<Icon name="share" /> Share template
+						</button>
+					)}
 				</div>
 			</header>
 
-			<main className="workspace">
+			<main className={`workspace${image ? " open" : ""}`}>
 				<div className="canvas-col">
 					{image ? (
 						<>
@@ -369,8 +365,8 @@ export function App() {
 										type="button"
 										className="icon-btn"
 										aria-pressed={!showGuides}
-										aria-label={showGuides ? "Hide boxes" : "Show boxes"}
-										title={showGuides ? "Hide boxes" : "Show boxes"}
+										aria-label={showGuides ? "Hide text boxes" : "Show text boxes"}
+										title={showGuides ? "Hide text boxes" : "Show text boxes"}
 										onClick={() => setShowGuides((s) => !s)}
 									>
 										<Icon name={showGuides ? "eye" : "eyeOff"} />
@@ -391,10 +387,10 @@ export function App() {
 								{fields.length ? (
 									<>
 										<span className="fine-pointer">
-											Drag on empty space to add another text area. Arrow keys nudge, Shift for 10px. Hold Alt to resize from the
+											Drag on empty space to add another text box. Arrow keys nudge, Shift for 10px. Hold Alt to resize from the
 											center or skip snapping.
 										</span>
-										<span className="coarse-pointer">Drag on empty space to add a text area. Drag a box or its handles to adjust.</span>
+										<span className="coarse-pointer">Drag on empty space to add a text box. Drag a box or its handles to adjust.</span>
 									</>
 								) : (
 									"Drag a box on the design where the name should go."
@@ -416,7 +412,7 @@ export function App() {
 								</span>
 							</FileDrop>
 							<button type="button" className="link" onClick={trySample}>
-								or try it with a sample invitation
+								or try an example
 							</button>
 						</div>
 					)}
@@ -427,7 +423,8 @@ export function App() {
 					)}
 				</div>
 
-				<aside className="sidebar">
+				{/* Hidden until there is a design, then slides in from the right. */}
+				<aside className="sidebar" inert={!image} aria-hidden={!image || undefined}>
 					<Section
 						step={1}
 						title="Design"
@@ -440,29 +437,15 @@ export function App() {
 							)
 						}
 					>
-						{image ? (
+						{image && (
 							<p className="muted small file-line">
 								<Icon name="image" size={14} /> <span className="truncate">{image.name}</span>
 							</p>
-						) : (
-							<p className="muted small">Upload the card design on the left.</p>
 						)}
 					</Section>
 
-					<Section step={2} title="Your list" done={rowCount > 0}>
-						<DataPanel
-							source={source}
-							table={table}
-							previewRow={previewIndex}
-							expectedColumns={expectedColumns}
-							onSource={applySource}
-							onPreviewRow={setPreviewRow}
-							onError={(m) => toast(m, "error")}
-						/>
-					</Section>
-
-					<Section step={3} title="Text on the card" done={fields.length > 0}>
-						{image ? (
+					<Section step={2} title="Text on the card" done={fields.length > 0}>
+						{image && (
 							<FieldPanel
 								fields={fields}
 								selected={selected}
@@ -477,11 +460,20 @@ export function App() {
 								onDelete={deleteField}
 								onUploadFont={uploadFont}
 							/>
-						) : (
-							<p className="muted small">Add a design first.</p>
 						)}
 					</Section>
 
+					<Section step={3} title="Your list" done={rowCount > 0}>
+						<DataPanel
+							source={source}
+							table={table}
+							previewRow={previewIndex}
+							expectedColumns={expectedColumns}
+							onSource={applySource}
+							onPreviewRow={setPreviewRow}
+							onError={(m) => toast(m, "error")}
+						/>
+					</Section>
 
 					<div className="generate-bar">
 						<button
@@ -492,7 +484,7 @@ export function App() {
 						>
 							<Icon name="sparkle" /> Generate {rowCount ? `${rowCount.toLocaleString("en-US")} ${rowCount === 1 ? "card" : "cards"}` : "cards"}
 						</button>
-						{problems.length > 0 && <p className="muted small">{problems.join(" · ")}</p>}
+						{problems.length > 0 && <p className="muted small">Next: {problems[0]}</p>}
 					</div>
 
 					<footer className="credit small">

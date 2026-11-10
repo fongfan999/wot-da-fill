@@ -51,7 +51,7 @@ export function ShareDialog({ onShare, onClose }: { onShare(): Promise<string>; 
 					</>
 				) : (
 					<>
-						<p>Creates a link to this design, its text areas, fonts and export settings, so someone else can generate cards with their own list.</p>
+						<p>Creates a link to this design, its text boxes, fonts and export settings, so someone else can generate cards with their own list.</p>
 						<ul className="checklist small">
 							<li>
 								<Icon name="check" size={14} /> Uploaded: the design image, layout and any fonts you uploaded

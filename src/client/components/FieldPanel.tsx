@@ -59,7 +59,7 @@ export function FieldPanel({
 
 	return (
 		<div className="fields">
-			<div className="field-tabs" role="tablist" aria-label="Text areas">
+			<div className="field-tabs" role="tablist" aria-label="Text boxes">
 				{fields.map((f, i) => (
 					<button
 						key={f.id}
@@ -80,7 +80,7 @@ export function FieldPanel({
 
 			{!selected ? (
 				<p className="muted small">
-					{fields.length ? "Pick a text area above, or click one on the design." : "Drag on the design to mark where the name goes."}
+					{fields.length ? "Pick a text box above, or click one on the design." : "Drag on the design to mark where the name goes."}
 				</p>
 			) : (
 				<FieldEditor
