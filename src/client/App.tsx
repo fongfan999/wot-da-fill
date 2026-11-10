@@ -306,6 +306,7 @@ export function App() {
 					{image ? (
 						<>
 							<div className="toolbar">
+								{rowCount > 0 && (
 								<div className="row-nav" aria-label="Preview row">
 									<button
 										type="button"
@@ -317,16 +318,10 @@ export function App() {
 										<Icon name="left" />
 									</button>
 									<span className="row-label">
-										{rowCount ? (
-											<>
-												<span className="mono">
-													{previewIndex + 1}/{rowCount}
-												</span>{" "}
-												<span className="row-text">{texts[0] || <i>empty</i>}</span>
-											</>
-										) : (
-											<span className="muted">Sample preview</span>
-										)}
+										<span className="mono">
+											{previewIndex + 1}/{rowCount}
+										</span>{" "}
+										<span className="row-text">{texts[0] || <i>empty</i>}</span>
 									</span>
 									<button
 										type="button"
@@ -343,6 +338,7 @@ export function App() {
 										</button>
 									)}
 								</div>
+								)}
 								<div className="toolbar-right">
 									<button
 										type="button"
