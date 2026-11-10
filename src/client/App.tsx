@@ -503,7 +503,6 @@ export function App() {
 							</picture>
 							Wot Da Fong <span aria-hidden="true">↗</span>
 						</a>
-						<span className="muted">© {new Date().getFullYear()} Phong Phan</span>
 					</footer>
 				</aside>
 			</main>
