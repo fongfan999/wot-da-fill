@@ -4,3 +4,7 @@ onlyBuiltDependencies:
 allowBuilds:
   esbuild: true
   workerd: true
+overrides:
+  # wasm-feature-detect 1.10.0 (2026-11-09) ships `import.source(...)`, which browsers can't parse yet;
+  # it breaks the jSquash encoder worker. Drop this once a fixed release is out.
+  wasm-feature-detect: 1.9.0

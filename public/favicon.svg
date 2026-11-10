@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+	<style>
+		.tile { fill: #3453b6; }
+		.card { fill: #fcfaf4; }
+		.ink { stroke: #3453b6; }
+		@media (prefers-color-scheme: dark) {
+			.tile { fill: #93a9ff; }
+			.card { fill: #1b1e19; }
+			.ink { stroke: #93a9ff; }
+		}
+	</style>
+	<rect class="tile" x="1" y="1" width="30" height="30" rx="8" />
+	<rect class="card" x="7" y="9" width="18" height="14" rx="2" />
+	<path class="ink" d="M10.5 17.2c1.6-2.6 3-2.6 3.4-.6.3 1.4 1.4 1.6 2.6-.2.8-1.2 1.7-1.3 2.2-.3.4.8 1.2.9 2.3.1" fill="none" stroke-width="1.8" stroke-linecap="round" />
+</svg>
