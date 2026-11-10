@@ -1,23 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { generateAll, type GenerateResult, type Job, type Progress } from "../lib/generate";
+import { generateAll, type GenerateResult, type Job, type Progress as ProgressInfo } from "../lib/generate";
 import { formatBytes, formatDuration } from "../lib/text";
-import { Icon } from "./ui";
+import { Button, Dialog, Icon, Notice, Progress } from "./ui";
 
 type Params = Omit<Job, "signal" | "onProgress">;
 
 const PAGE = 60;
+const count = (n: number) => n.toLocaleString("en-US");
 
 export function GenerateDialog({ params, onClose }: { params: Params; onClose(): void }) {
-	const dialogRef = useRef<HTMLDialogElement>(null);
-	const [progress, setProgress] = useState<Progress | null>(null);
+	const [progress, setProgress] = useState<ProgressInfo | null>(null);
 	const [result, setResult] = useState<GenerateResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const [shown, setShown] = useState(PAGE);
 	const [zipUrl, setZipUrl] = useState<string | null>(null);
 	const controller = useRef<AbortController | null>(null);
 
 	useEffect(() => {
-		dialogRef.current?.showModal();
 		const ac = new AbortController();
 		controller.current = ac;
 		generateAll({ ...params, signal: ac.signal, onProgress: setProgress })
@@ -41,9 +39,8 @@ export function GenerateDialog({ params, onClose }: { params: Params; onClose():
 
 	const running = !result && !error;
 	const close = () => {
-		if (running && !confirm("Stop generating? Cards made so far will be discarded.")) return;
+		if (running && !confirm("Stop making the cards? The ones made so far will be thrown away.")) return;
 		controller.current?.abort();
-		dialogRef.current?.close();
 		onClose();
 	};
 
@@ -55,121 +52,64 @@ export function GenerateDialog({ params, onClose }: { params: Params; onClose():
 		return () => window.removeEventListener("beforeunload", warn);
 	}, [running]);
 
-	return (
-		<dialog
-			ref={dialogRef}
-			className="dialog generate"
-			onCancel={(e) => {
-				e.preventDefault();
-				close();
-			}}
-			aria-labelledby="gen-title"
-		>
-			<header className="dialog-head">
-				<h2 id="gen-title">{error ? "Generation stopped" : result ? "Your cards are ready" : "Making your cards"}</h2>
-				<button type="button" className="icon-btn" aria-label={running ? "Cancel" : "Close"} onClick={close}>
-					<Icon name="x" />
-				</button>
-			</header>
+	const total = params.table.rows.length;
+	const title = error ? "The cards weren't made" : result ? `Your ${count(result.files.length)} ${result.files.length === 1 ? "card is" : "cards are"} ready` : "Making your cards";
 
-			{running && <Running progress={progress} templateSize={params.template.size} />}
+	return (
+		<Dialog title={title} onClose={close} closeLabel={running ? "Stop" : "Close"} width={result ? 760 : 520}>
+			{running && <Running progress={progress} total={total} />}
 			{error && (
-				<div className="dialog-body">
-					<p className="warn">{error}</p>
-					<button type="button" className="btn" onClick={close}>
-						Back to editing
-					</button>
-				</div>
+				<>
+					<Notice tone="warn">{error}</Notice>
+					<div className="wf-actions">
+						<Button onClick={close}>Back to editing</Button>
+					</div>
+				</>
 			)}
-			{result && zipUrl && (
-				<Done result={result} zipUrl={zipUrl} templateSize={params.template.size} shown={shown} onMore={() => setShown((s) => s + PAGE)} />
-			)}
-		</dialog>
+			{result && zipUrl && <Done result={result} zipUrl={zipUrl} templateSize={params.template.size} onClose={close} />}
+		</Dialog>
 	);
 }
 
-function Running({ progress, templateSize }: { progress: Progress | null; templateSize: number }) {
+function timeLeft(ms: number): string {
+	const s = ms / 1000;
+	if (s < 5) return "almost done";
+	if (s < 60) return `about ${Math.ceil(s / 5) * 5} seconds left`;
+	const m = Math.round(s / 60);
+	return m <= 1 ? "about a minute left" : `about ${m} minutes left`;
+}
+
+function Running({ progress, total }: { progress: ProgressInfo | null; total: number }) {
 	const [now, setNow] = useState(() => performance.now());
 	useEffect(() => {
 		const t = setInterval(() => setNow(performance.now()), 500);
 		return () => clearInterval(t);
 	}, []);
 
-	if (!progress) return <div className="dialog-body"><p className="muted">Starting...</p></div>;
-	const { phase, done, total, bytes, startedAt } = progress;
-	const elapsed = now - startedAt;
-	const zipPct = progress.zipTotal ? (progress.zipWritten ?? 0) / progress.zipTotal : 0;
-	// Cards are ~97% of the work; zipping is a fast copy.
-	const pct = phase === "fonts" ? 0 : phase === "render" ? (done / total) * 0.97 : 0.97 + zipPct * 0.03;
+	const phase = progress?.phase ?? "fonts";
+	const done = progress?.done ?? 0;
+	const elapsed = progress ? now - progress.startedAt : 0;
+	const zipPct = progress?.zipTotal ? (progress.zipWritten ?? 0) / progress.zipTotal : 0;
+	// Cards are nearly all the work; zipping is a fast copy.
+	const value = phase === "fonts" ? 0 : phase === "render" ? (done / total) * 0.97 : 0.97 + zipPct * 0.03;
 	const rate = done > 0 ? done / (elapsed / 1000) : 0;
-	const eta = rate > 0 ? ((total - done) / rate) * 1000 : null;
-	const avg = done ? bytes / done : 0;
-
 	const label =
-		phase === "fonts" ? "Loading fonts" : phase === "render" ? `Rendering and optimizing card ${Math.min(done + 1, total)} of ${total}` : "Packing the zip";
+		phase === "fonts"
+			? "Getting the fonts ready"
+			: phase === "render"
+				? `Making your cards${rate > 0 && done >= 3 ? `, ${timeLeft(((total - done) / rate) * 1000)}` : ""}`
+				: "Putting them in one zip";
 
 	return (
-		<div className="dialog-body">
-			<div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct * 100)} aria-label={label}>
-				<div className="progress-fill" style={{ transform: `scaleX(${pct})` }} />
-			</div>
-			<div className="progress-meta">
-				<span>{label}</span>
-				<b>{Math.floor(pct * 100)}%</b>
-			</div>
-			<dl className="stats">
-				<div>
-					<dt>Done</dt>
-					<dd>
-						{done.toLocaleString("en-US")} / {total.toLocaleString("en-US")}
-					</dd>
-				</div>
-				<div>
-					<dt>Speed</dt>
-					<dd>{rate ? `${rate.toFixed(rate < 10 ? 1 : 0)} cards/s` : "..."}</dd>
-				</div>
-				<div>
-					<dt>Time left</dt>
-					<dd>{phase === "render" && eta != null ? formatDuration(eta) : "..."}</dd>
-				</div>
-				<div>
-					<dt>Avg card</dt>
-					<dd>
-						{avg ? formatBytes(avg) : "..."}
-						{avg > 0 && <Savings before={templateSize} after={avg} />}
-					</dd>
-				</div>
-			</dl>
-			<p className="muted small">Everything runs in this browser tab. Your list never leaves your device.</p>
-		</div>
+		<>
+			<Progress value={value} label={label} detail={`${count(Math.min(done, total))} of ${count(total)}`} />
+			<p className="wf-small wf-muted">Everything happens in this browser tab. Your list never leaves this device.</p>
+		</>
 	);
 }
 
-function Savings({ before, after }: { before: number; after: number }) {
-	const delta = (after - before) / before;
-	if (!Number.isFinite(delta)) return null;
-	return (
-		<span className={`savings ${delta <= 0 ? "good" : ""}`} title="Compared with your design file">
-			{delta <= 0 ? "-" : "+"}
-			{Math.abs(Math.round(delta * 100))}%
-		</span>
-	);
-}
-
-function Done({
-	result,
-	zipUrl,
-	templateSize,
-	shown,
-	onMore,
-}: {
-	result: GenerateResult;
-	zipUrl: string;
-	templateSize: number;
-	shown: number;
-	onMore(): void;
-}) {
-	const avg = result.files.length ? result.totalBytes / result.files.length : 0;
+function Done({ result, zipUrl, templateSize, onClose }: { result: GenerateResult; zipUrl: string; templateSize: number; onClose(): void }) {
+	const [shown, setShown] = useState(PAGE);
 	// Object URLs are created and revoked by the same effect so StrictMode's re-run can't leave dead links.
 	const [thumbs, setThumbs] = useState<(GenerateResult["files"][number] & { url: string })[]>([]);
 	useEffect(() => {
@@ -178,46 +118,80 @@ function Done({
 		return () => next.forEach((t) => URL.revokeObjectURL(t.url));
 	}, [result]);
 
+	const avg = result.files.length ? result.totalBytes / result.files.length : 0;
+	const saved = templateSize > 0 ? Math.round((1 - avg / templateSize) * 100) : 0;
+	const failedRows = result.failed.map((f) => f.row + 1);
+
 	return (
-		<div className="dialog-body">
-			<div className="done-summary">
+		<>
+			<div className="wf-ready">
 				<div>
-					<p className="big">
-						{result.files.length.toLocaleString("en-US")} cards · {formatBytes(result.zip.size)}
-					</p>
-					<p className="muted small">
-						{result.width} × {result.height}px · avg {formatBytes(avg)} per card
-						<Savings before={templateSize} after={avg} /> vs. your {formatBytes(templateSize)} design · {formatDuration(result.elapsedMs)}
-					</p>
+					<b>{result.zipName}</b>
+					<p className="wf-small wf-muted">The download started by itself. Look in your Downloads folder.</p>
 				</div>
-				<a className="btn primary" href={zipUrl} download={result.zipName}>
-					<Icon name="download" /> Download zip
+				<a className="wf-btn wf-btn-primary wf-btn-lg" href={zipUrl} download={result.zipName}>
+					<Icon name="download" size={20} /> Download again
 				</a>
 			</div>
-			{result.failed.length > 0 && (
-				<p className="warn small">
-					{result.failed.length} {result.failed.length === 1 ? "row" : "rows"} failed (rows {result.failed.slice(0, 8).map((f) => f.row + 1).join(", ")}
-					{result.failed.length > 8 ? "..." : ""}). The zip has everything else.
-				</p>
+			{failedRows.length > 0 && (
+				<Notice tone="warn">
+					<b>
+						{failedRows.length} {failedRows.length === 1 ? "card" : "cards"} couldn't be made
+					</b>{" "}
+					(number {failedRows.slice(0, 8).join(", ")}
+					{failedRows.length > 8 ? "…" : ""}). The zip has all the others.
+				</Notice>
 			)}
-			<p className="muted small">The download should start by itself. The zip also has _manifest.csv mapping each file to its row.</p>
-			<ul className="thumbs">
+			<ul className="wf-thumbs">
 				{thumbs.slice(0, shown).map((t) => (
 					<li key={t.name}>
-						<a href={t.url} download={t.name} title={`Download ${t.name}`}>
-							<img src={t.url} alt="" loading="lazy" decoding="async" />
-							<span className="thumb-name">{t.name}</span>
-							<span className="thumb-size">{formatBytes(t.blob.size)}</span>
+						<a className="wf-thumb" href={t.url} download={t.name} title={`Save ${t.name}`}>
+							<img className="wf-thumb-img" src={t.url} alt="" loading="lazy" decoding="async" />
+							<span className="wf-thumb-name">{t.name}</span>
 						</a>
 					</li>
 				))}
 			</ul>
 			{thumbs.length > shown && (
-				<button type="button" className="btn ghost" onClick={onMore}>
-					Show more ({(thumbs.length - shown).toLocaleString("en-US")} left)
-				</button>
+				<Button variant="ghost" style={{ alignSelf: "center" }} onClick={() => setShown((s) => s + PAGE)}>
+					Show more ({count(thumbs.length - shown)} left)
+				</Button>
 			)}
-		</div>
+			<div className="wf-dialog-actions">
+				<details className="wf-details">
+					<summary>
+						Details <Icon name="chevronDown" size={16} />
+					</summary>
+					<dl className="wf-stats">
+						<div>
+							<dt>Cards</dt>
+							<dd>
+								{count(result.files.length)} · {result.width} × {result.height}px
+							</dd>
+						</div>
+						<div>
+							<dt>Zip</dt>
+							<dd>{formatBytes(result.zip.size)}</dd>
+						</div>
+						<div>
+							<dt>Each card</dt>
+							<dd>
+								about {formatBytes(avg)}
+								{saved > 0 ? `, ${saved}% smaller than your design` : ""}
+							</dd>
+						</div>
+						<div>
+							<dt>Took</dt>
+							<dd>{formatDuration(result.elapsedMs)}</dd>
+						</div>
+					</dl>
+					<p className="wf-small wf-muted" style={{ marginTop: 12 }}>
+						The zip also has _manifest.csv, which says which file belongs to which name.
+					</p>
+				</details>
+				<Button onClick={onClose}>Back to editing</Button>
+			</div>
+		</>
 	);
 }
 

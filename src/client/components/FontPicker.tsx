@@ -1,47 +1,46 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CURATED_FAMILIES, closestVariant, loadCatalog, previewFamily, type GoogleFont } from "../lib/fonts";
 import type { CustomFont, FontRef } from "../types";
-import { Icon, pickFile } from "./ui";
-
-const CATEGORY_LABEL: Record<GoogleFont["category"], string> = {
-	serif: "Serif",
-	sans: "Sans",
-	display: "Display",
-	script: "Script",
-	mono: "Mono",
-};
+import { Button, Icon, pickFile } from "./ui";
 
 interface Option {
 	key: string;
 	family: string;
 	source: FontRef["source"];
-	meta: string;
 	google?: GoogleFont;
 	noVietnamese?: boolean;
 }
 
+/** Shows the chosen font in its own letters and opens a searchable list. */
 export function FontPicker({
 	value,
 	customFonts,
 	onChange,
 	onUpload,
+	labelId,
 }: {
 	value: FontRef;
 	customFonts: CustomFont[];
 	onChange(font: FontRef): void;
 	onUpload(file: File): Promise<CustomFont | null>;
+	labelId?: string;
 }) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
-	const [viOnly, setViOnly] = useState(true);
 	const [catalog, setCatalog] = useState<GoogleFont[] | null>(null);
 	const [active, setActive] = useState(0);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const listRef = useRef<HTMLUListElement>(null);
+	const [currentAlias, setCurrentAlias] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (open && !catalog) loadCatalog().then(setCatalog);
 	}, [open, catalog]);
+
+	// The closed button shows the font in its own letters too.
+	useEffect(() => {
+		setCurrentAlias(value.source === "custom" ? value.family : previewFamily(value.family));
+	}, [value.family, value.source]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -56,29 +55,24 @@ export function FontPicker({
 		const q = query.trim().toLowerCase();
 		const custom: Option[] = customFonts
 			.filter((f) => !q || f.family.toLowerCase().includes(q))
-			.map((f) => ({ key: `c:${f.id}`, family: f.family, source: "custom", meta: "Uploaded" }));
+			.map((f) => ({ key: `c:${f.id}`, family: f.family, source: "custom" }));
 		if (!catalog) return custom;
-		const byName = new Map(catalog.map((f) => [f.family, f]));
-		const toOption = (f: GoogleFont): Option => ({
-			key: `g:${f.family}`,
-			family: f.family,
-			source: "google",
-			meta: CATEGORY_LABEL[f.category],
-			google: f,
-			noVietnamese: !f.vietnamese,
-		});
+		const toOption = (f: GoogleFont): Option => ({ key: `g:${f.family}`, family: f.family, source: "google", google: f, noVietnamese: !f.vietnamese });
 		if (!q) {
+			const byName = new Map(catalog.map((f) => [f.family, f]));
 			const curated = CURATED_FAMILIES.map((n) => byName.get(n)).filter((f): f is GoogleFont => !!f);
 			return [...custom, ...curated.map(toOption)];
 		}
+		// Fonts with Vietnamese accents first, then names that start with what was typed.
+		const rank = (f: GoogleFont) => (f.vietnamese ? 0 : 2) + (f.family.toLowerCase().startsWith(q) ? 0 : 1);
 		const matches = catalog
-			.filter((f) => (!viOnly || f.vietnamese) && f.family.toLowerCase().includes(q))
-			.sort((a, b) => Number(!a.family.toLowerCase().startsWith(q)) - Number(!b.family.toLowerCase().startsWith(q)))
+			.filter((f) => f.family.toLowerCase().includes(q))
+			.sort((a, b) => rank(a) - rank(b))
 			.slice(0, 60);
 		return [...custom, ...matches.map(toOption)];
-	}, [catalog, customFonts, query, viOnly]);
+	}, [catalog, customFonts, query]);
 
-	useEffect(() => setActive(0), [query, viOnly]);
+	useEffect(() => setActive(0), [query]);
 	useEffect(() => {
 		listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
 	}, [active]);
@@ -105,51 +99,49 @@ export function FontPicker({
 	};
 
 	return (
-		<div className="font-picker" ref={rootRef}>
+		<div className="wf-font" ref={rootRef}>
 			<button
 				type="button"
-				className="font-current"
+				className="wf-font-current"
 				aria-haspopup="listbox"
 				aria-expanded={open}
+				aria-labelledby={labelId}
 				onClick={() => setOpen((o) => !o)}
 			>
-				<span style={{ fontFamily: `"${value.family}", var(--sans)` }}>{value.family}</span>
-				<em>{value.source === "custom" ? "Uploaded" : "Google Fonts"}</em>
+				<span className="wf-font-name" style={currentAlias ? { fontFamily: `"${currentAlias}", var(--font-sans)` } : undefined}>
+					{value.family}
+				</span>
+				<Icon name="chevronDown" size={16} />
 			</button>
 			{open && (
-				<div className="font-pop">
-					<div className="font-search">
-						<input
-							autoFocus
-							type="search"
-							placeholder="Search 1,700+ Google Fonts"
-							value={query}
-							aria-label="Search fonts"
-							onChange={(e) => setQuery(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key === "ArrowDown") {
-									e.preventDefault();
-									setActive((a) => Math.min(options.length - 1, a + 1));
-								} else if (e.key === "ArrowUp") {
-									e.preventDefault();
-									setActive((a) => Math.max(0, a - 1));
-								} else if (e.key === "Enter" && options[active]) {
-									e.preventDefault();
-									choose(options[active]);
-								} else if (e.key === "Escape") {
-									setOpen(false);
-								}
-							}}
-						/>
-						<label className="mini-check">
-							<input type="checkbox" checked={viOnly} onChange={(e) => setViOnly(e.target.checked)} />
-							Vietnamese only
-						</label>
-					</div>
-					<p className="font-hint">{query ? `${options.length} matches` : "Picked for invitations, all with Vietnamese accents"}</p>
-					<ul className="font-list" role="listbox" ref={listRef} aria-label="Fonts">
-						{!catalog && <li className="font-empty">Loading fonts...</li>}
-						{catalog && options.length === 0 && <li className="font-empty">No fonts match "{query}".</li>}
+				<div className="wf-font-pop">
+					<input
+						autoFocus
+						className="wf-input"
+						type="search"
+						placeholder="Search 1,700+ fonts"
+						value={query}
+						aria-label="Search fonts"
+						onChange={(e) => setQuery(e.target.value)}
+						onKeyDown={(e) => {
+							if (e.key === "ArrowDown") {
+								e.preventDefault();
+								setActive((a) => Math.min(options.length - 1, a + 1));
+							} else if (e.key === "ArrowUp") {
+								e.preventDefault();
+								setActive((a) => Math.max(0, a - 1));
+							} else if (e.key === "Enter" && options[active]) {
+								e.preventDefault();
+								choose(options[active]);
+							} else if (e.key === "Escape") {
+								setOpen(false);
+							}
+						}}
+					/>
+					<p className="wf-hint">{query ? `${options.length} found` : "Picked for invitations, all with Vietnamese accents"}</p>
+					<ul className="wf-font-list" role="listbox" ref={listRef} aria-label="Fonts">
+						{!catalog && <li className="wf-table-more">Loading fonts…</li>}
+						{catalog && options.length === 0 && <li className="wf-table-more">No font called “{query}”.</li>}
 						{options.map((o, i) => (
 							<FontRow
 								key={o.key}
@@ -162,9 +154,9 @@ export function FontPicker({
 							/>
 						))}
 					</ul>
-					<button type="button" className="btn ghost full" onClick={upload}>
-						<Icon name="upload" /> Upload a font (TTF, OTF, WOFF)
-					</button>
+					<Button variant="ghost" icon="upload" full onClick={upload}>
+						Use my own font file
+					</Button>
 				</div>
 			)}
 		</div>
@@ -189,7 +181,7 @@ function FontRow({
 	const ref = useRef<HTMLLIElement>(null);
 	const [alias, setAlias] = useState<string | null>(option.source === "custom" ? option.family : null);
 
-	// Only fetch a font's preview subset once its row scrolls into view.
+	// Only fetch a font's preview letters once its row scrolls into view.
 	useEffect(() => {
 		if (option.source !== "google" || !ref.current) return;
 		const io = new IntersectionObserver(([entry]) => {
@@ -208,16 +200,18 @@ function FontRow({
 			role="option"
 			data-index={index}
 			aria-selected={selected}
-			className={`font-row${active ? " active" : ""}`}
+			className="wf-font-row"
+			style={active && !selected ? { background: "var(--paper-sunk)" } : undefined}
 			onClick={onPick}
 			onPointerMove={onHover}
 		>
-			<span className="font-name" style={alias ? { fontFamily: `"${alias}", var(--sans)` } : undefined}>
+			<span className="wf-font-name" style={alias ? { fontFamily: `"${alias}", var(--font-sans)` } : undefined}>
 				{option.family}
 			</span>
-			<span className="font-meta">
-				{option.noVietnamese && <b title="No Vietnamese accents in this font">No VI</b>}
-				{option.meta}
+			<span className="wf-font-side">
+				{option.noVietnamese && <span className="wf-font-flag">No Vietnamese</span>}
+				{option.source === "custom" && <span className="wf-meta">Yours</span>}
+				{selected && <Icon name="check" size={16} />}
 			</span>
 		</li>
 	);

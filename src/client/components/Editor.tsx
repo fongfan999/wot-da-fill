@@ -23,14 +23,18 @@ export interface EditorProps {
 	texts: string[];
 	selectedId: string | null;
 	showGuides: boolean;
+	/** Short name for each box's tag, same order as fields. */
+	labels: string[];
 	onSelect(id: string | null): void;
+	/** A box was clicked (pressed and released without dragging). */
+	onOpen(id: string): void;
 	onChangeBox(id: string, box: Box): void;
 	onCreate(box: Box): void;
 }
 
 const SNAP_PX = 6;
 
-export function Editor({ image, fields, texts, selectedId, showGuides, onSelect, onChangeBox, onCreate }: EditorProps) {
+export function Editor({ image, fields, texts, selectedId, showGuides, labels, onSelect, onOpen, onChangeBox, onCreate }: EditorProps) {
 	const stageRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const overlayRef = useRef<HTMLDivElement>(null);
@@ -103,7 +107,7 @@ export function Editor({ image, fields, texts, selectedId, showGuides, onSelect,
 		setOverflow((prev) => (sameSet(prev, next) ? prev : next));
 	}, [background, fields, texts, view, image.width, image.height, fontTick]);
 
-	if (!view) return <div className="stage" ref={stageRef} />;
+	if (!view) return <div className="editor" ref={stageRef} />;
 
 	const toImage = (dx: number, dy: number) => ({ x: dx / view.k, y: dy / view.k });
 	const pct = (b: Box) => ({
@@ -187,6 +191,7 @@ export function Editor({ image, fields, texts, selectedId, showGuides, onSelect,
 		drag.current = null;
 		setGuides({ v: false, h: false });
 		if (!d) return;
+		if (d.mode === "move" && d.id && !d.moved) onOpen(d.id);
 		if (d.mode === "draw") {
 			setDraft(null);
 			if (draft && draft.w * view.k > 8 && draft.h * view.k > 8) onCreate(clampBox(draft, image.width, image.height));
@@ -195,7 +200,7 @@ export function Editor({ image, fields, texts, selectedId, showGuides, onSelect,
 	};
 
 	return (
-		<div className="stage" ref={stageRef}>
+		<div className="editor" ref={stageRef}>
 			<div className="canvas-wrap" style={{ width: view.w, height: view.h }}>
 				<canvas ref={canvasRef} style={{ width: view.w, height: view.h }} aria-label="Card preview" role="img" />
 				{/* Move/up handlers live here only: captured pointer events bubble up from boxes and handles. */}
@@ -203,8 +208,8 @@ export function Editor({ image, fields, texts, selectedId, showGuides, onSelect,
 					ref={overlayRef}
 					tabIndex={0}
 					role="application"
-					aria-label="Design editor. Drag to add a text box; arrow keys move the selected one."
-					className={`overlay${showGuides ? "" : " clean"}`}
+					aria-label="Your design. Drag on an empty spot to add a text box; arrow keys move the selected one."
+					className="overlay"
 					onPointerDown={onPointerDownEmpty}
 					onPointerMove={onPointerMove}
 					onPointerUp={onPointerUp}
@@ -215,31 +220,31 @@ export function Editor({ image, fields, texts, selectedId, showGuides, onSelect,
 						return (
 							<div
 								key={f.id}
-								className={`box${selected ? " selected" : ""}${overflow.has(f.id) ? " overflow" : ""}`}
+								className={`wf-box${selected ? " wf-box-selected" : ""}${overflow.has(f.id) ? " wf-box-overflow" : ""}${showGuides ? "" : " wf-box-hidden"}`}
 								style={pct(f.box)}
 								onPointerDown={(e) => {
 									onSelect(f.id);
 									begin(e, { mode: "move", id: f.id, startBox: f.box });
 								}}
 							>
-								<span className="box-tag">
-									{i + 1}
+								<span className="wf-box-tag">
+									{labels[i]}
 									{overflow.has(f.id) ? " · too long" : ""}
 								</span>
 								{selected &&
 									HANDLES.map((hd) => (
 										<span
 											key={hd}
-											className={`handle h-${hd}`}
+											className={`wf-handle h-${hd}`}
 											onPointerDown={(e) => begin(e, { mode: "resize", handle: hd, id: f.id, startBox: f.box })}
 										/>
 									))}
 							</div>
 						);
 					})}
-					{draft && <div className="box drafting" style={pct(draft)} />}
-					{guides.v && <div className="guide v" />}
-					{guides.h && <div className="guide h" />}
+					{draft && <div className="wf-box wf-box-drafting" style={pct(draft)} />}
+					{guides.v && <div className="wf-guide wf-guide-v" />}
+					{guides.h && <div className="wf-guide wf-guide-h" />}
 				</div>
 			</div>
 		</div>

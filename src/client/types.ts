@@ -68,8 +68,10 @@ export interface DataSource {
 	/** Raw cell grid before header handling. */
 	grid: string[][];
 	hasHeader: boolean;
+	/** Sheets that have something in them; the picker only shows when there are several. */
 	sheets?: string[];
 	sheet?: string;
+	readSheet?(sheet: string): string[][];
 }
 
 /** What gets uploaded when sharing a template (no guest data). */

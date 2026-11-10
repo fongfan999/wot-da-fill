@@ -1,5 +1,6 @@
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
+/** One icon set: 24px grid, 1.8 stroke, round caps and joins, drawn in the text colour. */
 const PATHS = {
 	upload: "M12 16V4m0 0L7 9m5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3",
 	download: "M12 4v12m0 0-5-5m5 5 5-5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3",
@@ -18,62 +19,146 @@ const PATHS = {
 	vMiddle: "M4 12h16M12 3v5m0 0-3-3m3 3 3-3M12 21v-5m0 0-3 3m3-3 3 3",
 	vBottom: "M4 20h16M12 4v12m0 0-4-4m4 4 4-4",
 	centerH: "M12 3v18M7 8h10v8H7z",
-	sparkle: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z",
 	eye: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
 	eyeOff: "M3 3l18 18M10.6 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6C3.8 8.3 2 12 2 12s3.5 7 10 7c1.7 0 3.2-.5 4.5-1.2M9.9 9.9a3 3 0 0 0 4.2 4.2",
 	text: "M5 6V4h14v2M12 4v16M9 20h6",
-	ruler: "M4 17 17 4l3 3L7 20zM8 13l2 2M11 10l2 2M14 7l2 2",
 	link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
 	refresh: "M20 11a8 8 0 0 0-14.9-3M4 4v4h4M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4",
 	table: "M3 5h18v14H3zM3 10h18M3 15h18M9 5v14",
 	image: "M4 5h16v14H4zM4 16l5-5 4 4 2-2 5 5M15 9.5a1.5 1.5 0 1 0 0-.01",
-	font: "M4 20 10 4h1l6 16M6.5 14h8M17 20h4",
 	undo: "M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11",
 	redo: "M15 14l5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13",
+	chevronDown: "M6 9l6 6 6-6",
+	more: "M5 12h.01M12 12h.01M19 12h.01",
+	alert: "M12 9v4M12 17h.01M10.3 4.3 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z",
+	info: "M12 11v6M12 7.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
 } as const;
 
 export type IconName = keyof typeof PATHS;
 
-export function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
+export function Icon({ name, size = 18, label }: { name: IconName; size?: number; label?: string }) {
 	return (
 		<svg
-			className="icon"
+			className="wf-icon"
 			width={size}
 			height={size}
 			viewBox="0 0 24 24"
 			fill="none"
 			stroke="currentColor"
-			strokeWidth={1.8}
+			strokeWidth={name === "more" ? 2.6 : 1.8}
 			strokeLinecap="round"
 			strokeLinejoin="round"
-			aria-hidden="true"
+			role={label ? "img" : undefined}
+			aria-label={label}
+			aria-hidden={label ? undefined : true}
 		>
 			<path d={PATHS[name]} />
 		</svg>
 	);
 }
 
-export function Section({
-	step,
-	title,
-	done,
-	aside,
-	children,
-}: {
-	step: number;
-	title: string;
-	done?: boolean;
-	aside?: ReactNode;
-	children: ReactNode;
-}) {
+const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(" ");
+
+/** The product icon: a card with a filled-in name line. Deliberately not the Wot Da Fong mark. */
+export function ProductMark() {
 	return (
-		<section className="section">
-			<header className="section-head">
-				<span className={`step${done ? " done" : ""}`}>{done ? <Icon name="check" size={13} /> : step}</span>
-				<h2>{title}</h2>
-				{aside && <div className="section-aside">{aside}</div>}
+		<span className="wf-product">
+			<svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
+				<rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)" />
+				<rect x="7" y="9" width="18" height="14" rx="2" fill="var(--paper-raised)" />
+				<path
+					d="M10.5 17.2c1.6-2.6 3-2.6 3.4-.6.3 1.4 1.4 1.6 2.6-.2.8-1.2 1.7-1.3 2.2-.3.4.8 1.2.9 2.3.1"
+					fill="none"
+					stroke="var(--accent)"
+					strokeWidth="1.6"
+					strokeLinecap="round"
+				/>
+				<path d="M10 20.3h12" stroke="var(--ink-soft)" strokeWidth="1" strokeLinecap="round" />
+			</svg>
+			<span className="wf-product-name">
+				Wot Da <em>Fill</em>
+			</span>
+		</span>
+	);
+}
+
+/** The maker credit, the only place the Wot Da Fong mark appears. */
+export function MadeBy() {
+	return (
+		<a className="wf-madeby" href="https://wotdafong.dev" target="_blank" rel="noreferrer" aria-label="Made by Wot Da Fong">
+			<picture>
+				<source srcSet="/wotdafong-paper.svg" media="(prefers-color-scheme: dark)" />
+				<img src="/wotdafong-ink.svg" alt="" width="16" height="16" />
+			</picture>
+			Wot Da Fong <span aria-hidden="true">↗</span>
+		</a>
+	);
+}
+
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "link";
+
+export function Button({
+	variant = "secondary",
+	size = "md",
+	icon,
+	iconRight,
+	full,
+	className,
+	children,
+	type = "button",
+	...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+	variant?: ButtonVariant;
+	size?: "sm" | "md" | "lg";
+	icon?: IconName;
+	iconRight?: IconName;
+	full?: boolean;
+}) {
+	const iconSize = size === "lg" ? 20 : size === "sm" ? 16 : 18;
+	return (
+		<button
+			type={type}
+			className={cx("wf-btn", `wf-btn-${variant}`, size !== "md" && `wf-btn-${size}`, full && "wf-btn-full", className)}
+			{...rest}
+		>
+			{icon && <Icon name={icon} size={iconSize} />}
+			{children}
+			{iconRight && <Icon name={iconRight} size={iconSize} />}
+		</button>
+	);
+}
+
+export function IconButton({
+	icon,
+	label,
+	size = "md",
+	pressed,
+	title,
+	className,
+	...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { icon: IconName; label: string; size?: "sm" | "md"; pressed?: boolean }) {
+	return (
+		<button
+			type="button"
+			className={cx("wf-iconbtn", size === "sm" && "wf-iconbtn-sm", className)}
+			aria-label={label}
+			title={title ?? label}
+			aria-pressed={pressed}
+			{...rest}
+		>
+			<Icon name={icon} size={size === "sm" ? 16 : 18} />
+		</button>
+	);
+}
+
+export function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+	return (
+		<section className="wf-section">
+			<header className="wf-section-head">
+				<h2 className="wf-section-title">{title}</h2>
+				{aside}
 			</header>
-			<div className="section-body">{children}</div>
+			{children}
 		</section>
 	);
 }
@@ -83,24 +168,27 @@ export function Segmented<T extends string>({
 	options,
 	onChange,
 	label,
+	full,
 }: {
 	value: T;
-	options: { value: NoInfer<T>; label: ReactNode; title?: string }[];
+	options: { value: NoInfer<T>; label?: ReactNode; icon?: IconName; title?: string }[];
 	onChange(v: NoInfer<T>): void;
 	label: string;
+	full?: boolean;
 }) {
 	return (
-		<div className="segmented" role="radiogroup" aria-label={label}>
+		<div className={cx("wf-seg", full && "wf-seg-full")} role="radiogroup" aria-label={label}>
 			{options.map((o) => (
 				<button
 					key={o.value}
 					type="button"
 					role="radio"
 					aria-checked={o.value === value}
+					aria-label={o.title}
 					title={o.title}
-					className={o.value === value ? "on" : ""}
 					onClick={() => onChange(o.value)}
 				>
+					{o.icon && <Icon name={o.icon} />}
 					{o.label}
 				</button>
 			))}
@@ -121,10 +209,10 @@ export function Switch({
 }) {
 	const id = useId();
 	return (
-		<label className="switch" htmlFor={id}>
-			<input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-			<span className="switch-track" aria-hidden="true" />
-			<span className="switch-label">
+		<label className="wf-switch" htmlFor={id}>
+			<input id={id} type="checkbox" role="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+			<span className="wf-switch-track" aria-hidden="true" />
+			<span className="wf-switch-text">
 				{label}
 				{hint && <small>{hint}</small>}
 			</span>
@@ -153,16 +241,17 @@ export function NumberField({
 	const [draft, setDraft] = useState<string | null>(null);
 	const commit = (raw: string) => {
 		const v = Number(raw);
-		if (raw.trim() !== "" && Number.isFinite(v)) {
-			onChange(Math.min(max ?? Infinity, Math.max(min ?? -Infinity, v)));
-		}
+		if (raw.trim() !== "" && Number.isFinite(v)) onChange(Math.min(max ?? Infinity, Math.max(min ?? -Infinity, v)));
 	};
 	return (
-		<label className="num" htmlFor={id}>
-			<span>{label}</span>
-			<span className="num-input">
+		<div className="wf-field">
+			<label className="wf-label" htmlFor={id}>
+				{label}
+			</label>
+			<span className="wf-num">
 				<input
 					id={id}
+					className="wf-input"
 					type="number"
 					inputMode="decimal"
 					value={draft ?? String(Math.round(value * 100) / 100)}
@@ -175,17 +264,80 @@ export function NumberField({
 					}}
 					onBlur={() => setDraft(null)}
 				/>
-				{suffix && <em>{suffix}</em>}
+				{suffix && <span className="wf-num-suffix">{suffix}</span>}
 			</span>
-		</label>
+		</div>
 	);
 }
 
+export function Select({
+	label,
+	value,
+	onChange,
+	options,
+	hideLabel,
+}: {
+	label: string;
+	value: string;
+	onChange(v: string): void;
+	options: { value: string; label: string }[];
+	hideLabel?: boolean;
+}) {
+	const id = useId();
+	return (
+		<div className="wf-field">
+			{!hideLabel && (
+				<label className="wf-label" htmlFor={id}>
+					{label}
+				</label>
+			)}
+			<span className="wf-select">
+				<select id={id} className="wf-input" value={value} aria-label={hideLabel ? label : undefined} onChange={(e) => onChange(e.target.value)}>
+					{options.map((o) => (
+						<option key={o.value} value={o.value}>
+							{o.label}
+						</option>
+					))}
+				</select>
+				<Icon name="chevronDown" size={16} />
+			</span>
+		</div>
+	);
+}
+
+export function ColorField({ label, value, onChange }: { label: string; value: string; onChange(v: string): void }) {
+	const id = useId();
+	const [draft, setDraft] = useState<string | null>(null);
+	return (
+		<div className="wf-field">
+			<label className="wf-label" htmlFor={id}>
+				{label}
+			</label>
+			<span className="wf-color">
+				<input id={id} type="color" value={value} onChange={(e) => onChange(e.target.value)} />
+				<input
+					className="wf-color-hex"
+					value={draft ?? value}
+					maxLength={7}
+					spellCheck={false}
+					aria-label="Colour code"
+					onChange={(e) => {
+						setDraft(e.target.value);
+						if (/^#[0-9a-f]{6}$/i.test(e.target.value)) onChange(e.target.value.toLowerCase());
+					}}
+					onBlur={() => setDraft(null)}
+				/>
+			</span>
+		</div>
+	);
+}
+
+/** Click it or drop a file on it. Pass the inner content as children. */
 export function FileDrop({
 	accept,
 	onFile,
 	children,
-	className = "",
+	className,
 	label,
 }: {
 	accept: string;
@@ -198,7 +350,7 @@ export function FileDrop({
 	const [over, setOver] = useState(false);
 	return (
 		<div
-			className={`drop ${over ? "over" : ""} ${className}`}
+			className={cx("wf-drop", over && "wf-drop-over", className)}
 			role="button"
 			tabIndex={0}
 			aria-label={label}
@@ -248,23 +400,200 @@ export function pickFile(accept: string): Promise<File | null> {
 	});
 }
 
-export interface ToastMessage {
-	id: number;
-	kind: "info" | "error" | "success";
-	text: string;
+export type StepState = "done" | "current" | "todo";
+
+export function Steps({
+	steps,
+	onSelect,
+}: {
+	steps: { label: string; state: StepState; disabled?: boolean }[];
+	onSelect(index: number): void;
+}) {
+	return (
+		<ol className="wf-steps" aria-label="Steps">
+			{steps.map((s, i) => (
+				<li key={s.label}>
+					{i > 0 && <span className="wf-step-sep" aria-hidden="true" />}
+					<button
+						type="button"
+						className={`wf-step wf-step-${s.state}`}
+						aria-current={s.state === "current" ? "step" : undefined}
+						disabled={s.disabled}
+						onClick={() => onSelect(i)}
+					>
+						<span className="wf-step-dot">{s.state === "done" ? <Icon name="check" size={14} label="Done" /> : i + 1}</span>
+						<span className="wf-step-label">{s.label}</span>
+					</button>
+				</li>
+			))}
+		</ol>
+	);
 }
 
-export function Toasts({ items, onDismiss }: { items: ToastMessage[]; onDismiss(id: number): void }) {
+export function Notice({
+	tone = "info",
+	icon,
+	action,
+	children,
+}: {
+	tone?: "info" | "warn";
+	icon?: IconName;
+	action?: { label: string; onClick(): void };
+	children: ReactNode;
+}) {
+	const warn = tone === "warn";
 	return (
-		<div className="toasts" role="status" aria-live="polite">
-			{items.map((t) => (
-				<div key={t.id} className={`toast ${t.kind}`}>
-					<span>{t.text}</span>
-					<button type="button" className="icon-btn" aria-label="Dismiss" onClick={() => onDismiss(t.id)}>
-						<Icon name="x" size={14} />
-					</button>
-				</div>
-			))}
+		<div className={cx("wf-notice", warn && "wf-notice-warn")} role={warn ? "alert" : "status"}>
+			<Icon name={icon ?? (warn ? "alert" : "info")} size={20} />
+			<div className="wf-notice-body">{children}</div>
+			{action && (
+				<Button variant="link" onClick={action.onClick}>
+					{action.label}
+				</Button>
+			)}
 		</div>
 	);
+}
+
+export interface ToastMessage {
+	id: number;
+	kind: "info" | "error" | "busy";
+	text: string;
+	action?: { label: string; onClick(): void };
+}
+
+export function Toast({ toast, onDismiss }: { toast: ToastMessage; onDismiss?(): void }) {
+	return (
+		<div className={cx("wf-toast", toast.kind !== "info" && `wf-toast-${toast.kind}`)} role={toast.kind === "error" ? "alert" : "status"}>
+			{toast.kind === "busy" && <span className="wf-spinner" aria-hidden="true" />}
+			{toast.kind === "error" && <Icon name="alert" />}
+			<span className="wf-toast-text">{toast.text}</span>
+			{toast.action && (
+				<button type="button" className="wf-toast-action" onClick={toast.action.onClick}>
+					{toast.action.label}
+				</button>
+			)}
+			{onDismiss && <IconButton icon="x" label="Dismiss" onClick={onDismiss} />}
+		</div>
+	);
+}
+
+export function Progress({ value, label, detail }: { value: number; label: string; detail: string }) {
+	const v = Math.max(0, Math.min(1, value));
+	return (
+		<div className="wf-progress">
+			<div className="wf-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(v * 100)} aria-label={label}>
+				<div className="wf-progress-fill" style={{ transform: `scaleX(${v})` }} />
+			</div>
+			<div className="wf-progress-row">
+				<span>{label}</span>
+				<b>{detail}</b>
+			</div>
+		</div>
+	);
+}
+
+/** A native modal dialog: focus is trapped and Escape goes through onClose. */
+export function Dialog({
+	title,
+	onClose,
+	closeLabel = "Close",
+	width,
+	children,
+}: {
+	title: string;
+	onClose(): void;
+	closeLabel?: string;
+	width?: number;
+	children: ReactNode;
+}) {
+	const ref = useRef<HTMLDialogElement>(null);
+	const id = useId();
+	useEffect(() => {
+		const d = ref.current;
+		if (d && !d.open) d.showModal();
+		return () => d?.close();
+	}, []);
+	return (
+		<dialog
+			ref={ref}
+			className="wf-dialog"
+			style={width ? ({ "--wf-dialog-width": `${width}px` } as React.CSSProperties) : undefined}
+			aria-labelledby={id}
+			onCancel={(e) => {
+				e.preventDefault();
+				onClose();
+			}}
+		>
+			<header className="wf-dialog-head">
+				<h2 className="wf-dialog-title" id={id}>
+					{title}
+				</h2>
+				<IconButton icon="x" label={closeLabel} onClick={onClose} />
+			</header>
+			<div className="wf-dialog-body">{children}</div>
+		</dialog>
+	);
+}
+
+/** A small popover menu behind an icon button. */
+export function Menu({ label, items }: { label: string; items: { label: string; icon: IconName; onClick(): void }[] }) {
+	const [open, setOpen] = useState(false);
+	const root = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (!open) return;
+		const close = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false);
+		const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+		document.addEventListener("pointerdown", close);
+		document.addEventListener("keydown", esc);
+		return () => {
+			document.removeEventListener("pointerdown", close);
+			document.removeEventListener("keydown", esc);
+		};
+	}, [open]);
+	return (
+		<div className="wf-menu" ref={root}>
+			<IconButton icon="more" label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} />
+			{open && (
+				<div className="wf-menu-pop" role="menu">
+					{items.map((item) => (
+						<button
+							key={item.label}
+							type="button"
+							role="menuitem"
+							className="wf-menu-item"
+							onClick={() => {
+								setOpen(false);
+								item.onClick();
+							}}
+						>
+							<Icon name={item.icon} />
+							{item.label}
+						</button>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
+
+/** Opens once someone opens it, then stays open on later visits. */
+export function useRemembered(key: string, initial: boolean): [boolean, (v: boolean) => void] {
+	const [value, setValue] = useState(() => {
+		try {
+			const v = localStorage.getItem(key);
+			return v === null ? initial : v === "1";
+		} catch {
+			return initial;
+		}
+	});
+	const set = (v: boolean) => {
+		setValue(v);
+		try {
+			localStorage.setItem(key, v ? "1" : "0");
+		} catch {
+			// Storage can be blocked; the choice just won't be remembered.
+		}
+	};
+	return [value, set];
 }

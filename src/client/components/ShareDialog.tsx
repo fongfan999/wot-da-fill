@@ -1,77 +1,46 @@
-import { useEffect, useRef, useState } from "react";
-import { Icon } from "./ui";
+import { useState } from "react";
+import { Button, Dialog } from "./ui";
+
+type State = { kind: "idle" } | { kind: "busy" } | { kind: "done"; url: string; copied: boolean } | { kind: "error"; message: string };
 
 export function ShareDialog({ onShare, onClose }: { onShare(): Promise<string>; onClose(): void }) {
-	const ref = useRef<HTMLDialogElement>(null);
-	const [state, setState] = useState<{ kind: "idle" } | { kind: "busy" } | { kind: "done"; url: string } | { kind: "error"; message: string }>({
-		kind: "idle",
-	});
-	const [copied, setCopied] = useState(false);
+	const [state, setState] = useState<State>({ kind: "idle" });
 
-	useEffect(() => ref.current?.showModal(), []);
-
-	const close = () => {
-		ref.current?.close();
-		onClose();
-	};
-
-	const share = async () => {
-		setState({ kind: "busy" });
+	const copy = async (url: string) => {
 		try {
-			setState({ kind: "done", url: await onShare() });
-		} catch (err) {
-			setState({ kind: "error", message: err instanceof Error ? err.message : "Sharing failed." });
+			await navigator.clipboard.writeText(url);
+			setState({ kind: "done", url, copied: true });
+		} catch {
+			// Some browsers only allow copying straight after a click; the link is shown to copy by hand.
+			setState({ kind: "done", url, copied: false });
 		}
 	};
 
-	const copy = async (url: string) => {
-		await navigator.clipboard.writeText(url);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 1600);
+	const share = async () => {
+		if (state.kind === "done") return copy(state.url);
+		setState({ kind: "busy" });
+		try {
+			await copy(await onShare());
+		} catch (err) {
+			setState({ kind: "error", message: err instanceof Error ? err.message : "Sharing didn't work. Try again in a moment." });
+		}
 	};
 
 	return (
-		<dialog ref={ref} className="dialog share" onCancel={close} aria-labelledby="share-title">
-			<header className="dialog-head">
-				<h2 id="share-title">Share this template</h2>
-				<button type="button" className="icon-btn" aria-label="Close" onClick={close}>
-					<Icon name="x" />
-				</button>
-			</header>
-			<div className="dialog-body">
-				{state.kind === "done" ? (
-					<>
-						<p>Anyone with this link can open the design and its text layout, then add their own list.</p>
-						<div className="share-link">
-							<input readOnly value={state.url} onFocus={(e) => e.target.select()} aria-label="Share link" />
-							<button type="button" className="btn primary" onClick={() => copy(state.url)}>
-								<Icon name={copied ? "check" : "copy"} /> {copied ? "Copied" : "Copy"}
-							</button>
-						</div>
-					</>
-				) : (
-					<>
-						<p>Creates a link to this design, its text boxes, fonts and export settings, so someone else can generate cards with their own list.</p>
-						<ul className="checklist small">
-							<li>
-								<Icon name="check" size={14} /> Uploaded: the design image, layout and any fonts you uploaded
-							</li>
-							<li>
-								<Icon name="check" size={14} /> Never uploaded: your guest list. It stays in this browser.
-							</li>
-						</ul>
-						{state.kind === "error" && <p className="warn small">{state.message}</p>}
-						<div className="row end">
-							<button type="button" className="btn ghost" onClick={close}>
-								Cancel
-							</button>
-							<button type="button" className="btn primary" onClick={share} disabled={state.kind === "busy"}>
-								<Icon name="link" /> {state.kind === "busy" ? "Uploading..." : "Create link"}
-							</button>
-						</div>
-					</>
-				)}
+		<Dialog title="Share this layout" onClose={onClose}>
+			<p>Anyone with the link gets your design and where the text goes, and adds their own names.</p>
+			<p className="wf-small wf-muted">Your list of names is never shared. It stays on this device.</p>
+			{state.kind === "done" && (
+				<div className="wf-share-link">
+					<input className="wf-input" readOnly value={state.url} onFocus={(e) => e.target.select()} aria-label="Link to this layout" />
+				</div>
+			)}
+			{state.kind === "error" && <p className="wf-small" style={{ color: "var(--error)" }} role="alert">{state.message}</p>}
+			<div className="wf-actions">
+				<Button variant="primary" icon={state.kind === "done" && state.copied ? "check" : "copy"} onClick={share} disabled={state.kind === "busy"}>
+					{state.kind === "busy" ? "Making the link…" : state.kind === "done" && state.copied ? "Link copied" : "Copy link"}
+				</Button>
 			</div>
-		</dialog>
+		</Dialog>
 	);
 }
