@@ -19,15 +19,15 @@ import {
 	type StepState,
 	type ToastMessage,
 } from "./components/ui";
-import { buildTable, sampleSource, type Delimiter } from "./lib/data";
+import { buildTable, guessHasHeader, parseDelimited, sampleSource, type Delimiter } from "./lib/data";
 import { clampBox, newField } from "./lib/fields";
-import { findTooLong } from "./lib/fit";
+import { findTooLong, type TooLong } from "./lib/fit";
 import { addCustomFont, DEFAULT_FONT, ensureFont } from "./lib/fonts";
 import { textsForRow } from "./lib/generate";
 import { loadTemplateImage } from "./lib/image";
 import { createSampleTemplate } from "./lib/sample";
 import { loadSharedTemplate, shareTemplate } from "./lib/share";
-import { formatBytes, matchColumn, placeholdersIn, ROW_NUMBER } from "./lib/text";
+import { formatBytes, matchColumn, placeholdersIn, ROW_NUMBER, unknownPlaceholders } from "./lib/text";
 import { useUndoable } from "./lib/useUndoable";
 import type { Box, CustomFont, DataSource, Field, TemplateImage } from "./types";
 
@@ -60,7 +60,7 @@ export function App() {
 	const [toast, setToast] = useState<ToastMessage | null>(null);
 	const [generating, setGenerating] = useState(false);
 	const [sharing, setSharing] = useState(false);
-	const [tooLong, setTooLong] = useState<number[] | null>(null);
+	const [tooLong, setTooLong] = useState<TooLong[] | null>(null);
 	const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
 	const table = useMemo(() => (source ? buildTable(source.grid, source.hasHeader) : null), [source]);
@@ -117,8 +117,8 @@ export function App() {
 
 	// Check every name against its box whenever the names or the text change.
 	useEffect(() => {
-		setTooLong(null);
-		if (!table || !rowCount || !fields.length) return;
+		// The last result stays up while the next check runs, so tags and notices don't flicker during a drag.
+		if (!table || !rowCount || !fields.length) return setTooLong(null);
 		const ac = new AbortController();
 		const t = setTimeout(() => {
 			findTooLong(fields, customFonts, table, ac.signal)
@@ -167,6 +167,27 @@ export function App() {
 		},
 		[changeFields],
 	);
+
+	// Read pasted names as they're typed. This lives here, not in the Names panel, so opening the
+	// panel again doesn't re-read the list and jump back to the first name.
+	const parsedFrom = useRef<{ text: string; delimiter: Delimiter } | null>(null);
+	useEffect(() => {
+		if (source && source.kind !== "paste") return;
+		if (source && parsedFrom.current?.text === paste && parsedFrom.current.delimiter === delimiter) return;
+		const t = setTimeout(() => {
+			if (!paste.trim()) {
+				if (source?.kind === "paste") applySource(null);
+				return;
+			}
+			const grid = parseDelimited(paste, delimiter);
+			const hasHeader = source?.kind === "paste" ? source.hasHeader : guessHasHeader(grid, "paste");
+			parsedFrom.current = { text: paste, delimiter };
+			applySource({ kind: "paste", name: "what you pasted", grid, hasHeader });
+		}, 200);
+		return () => clearTimeout(t);
+		// Only new text or a new way of splitting it means reading it again.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [paste, delimiter]);
 
 	const firstColumnText = `{${columns[0] ?? "Name"}}`;
 	const styleFrom = selected ?? fields.at(-1);
@@ -256,11 +277,21 @@ export function App() {
 
 	const deleteField = useCallback(
 		(f: Field) => {
-			changeFields((fs) => fs.filter((x) => x.id !== f.id));
+			let index = -1;
+			changeFields((fs) => {
+				index = fs.findIndex((x) => x.id === f.id);
+				return fs.filter((x) => x.id !== f.id);
+			});
 			setSelectedId(null);
-			say("Text box removed.", "info", { label: "Undo", onClick: () => (undo(), setToast(null)) });
+			// Undo puts this box back where it was, even if other changes came after.
+			const restore = () => {
+				changeFields((fs) => (fs.some((x) => x.id === f.id) ? fs : [...fs.slice(0, Math.max(0, index)), f, ...fs.slice(Math.max(0, index))]));
+				setSelectedId(f.id);
+				setToast(null);
+			};
+			say("Text box removed.", "info", { label: "Undo", onClick: restore });
 		},
-		[changeFields, say, undo],
+		[changeFields, say],
 	);
 
 	const uploadFont = async (file: File) => {
@@ -347,8 +378,17 @@ export function App() {
 	/** Steps the design through the names that don't fit, starting after the one on show. */
 	const showNextTooLong = () => {
 		if (!tooLong?.length) return;
-		setPreviewRow(tooLong.find((r) => r > previewIndex) ?? tooLong[0]);
+		setPreviewRow((tooLong.find((r) => r.row > previewIndex) ?? tooLong[0]).row);
 	};
+
+	// Pieces of text the list doesn't have print as nothing on every card.
+	const missingColumns = columns.length ? [...new Set(fields.flatMap((f) => unknownPlaceholders(f.text, columns)))] : [];
+	const showMissing = () => {
+		const f = fields.find((x) => unknownPlaceholders(x.text, columns).length);
+		if (f) setSelectedId(f.id);
+		setStep("text");
+	};
+	const flagged = new Set(tooLong?.find((r) => r.row === previewIndex)?.fields ?? []);
 
 	const missing = !image ? "Add your design first." : !rowCount ? "Add your names first." : !fields.length ? "Add a text box first." : null;
 	const stepState = (id: Step, i: number): StepState => {
@@ -358,14 +398,28 @@ export function App() {
 		return done ? "done" : "todo";
 	};
 
+	const boxWord = fields.length > 1 ? "their boxes" : "the box";
+	const spills = tooLong?.some((r) => r.spill);
+	const shrinks = tooLong?.some((r) => !r.spill);
 	const fitNotice =
-		rowCount > 0 && fields.length > 0 && tooLong ? (
+		rowCount > 0 && missingColumns.length ? (
+			<Notice tone="warn" action={step === "text" && selected && unknownPlaceholders(selected.text, columns).length ? undefined : { label: "Show me", onClick: showMissing }}>
+				Your list has no <b>{missingColumns.join(" or ")}</b>, so that part of every card will be blank.
+			</Notice>
+		) : rowCount > 0 && fields.length > 0 && tooLong ? (
 			tooLong.length ? (
 				<Notice tone="warn" action={{ label: "Show me", onClick: showNextTooLong }}>
-					<b>{plural(tooLong.length, "name is", "names are")} too long</b> for {fields.length > 1 ? "their boxes" : "the box"}, even at the smallest size.
+					<b>{plural(tooLong.length, "name is", "names are")} too long</b> for {boxWord}.{" "}
+					{spills && shrinks
+						? "Some come out much smaller than the others, some spill over."
+						: spills
+							? `${tooLong.length === 1 ? "It spills" : "They spill"} over the edge.`
+							: `${tooLong.length === 1 ? "It comes" : "They come"} out much smaller than the others.`}
 				</Notice>
 			) : (
-				<Notice icon="check">All {plural(rowCount, "name fits", "names fit")} in {fields.length > 1 ? "their boxes" : "the box"}.</Notice>
+				<Notice icon="check">
+					All {plural(rowCount, "name fits", "names fit")} in {boxWord}.
+				</Notice>
 			)
 		) : null;
 
@@ -454,6 +508,7 @@ export function App() {
 								fields={fields}
 								texts={texts}
 								labels={labels}
+								flagged={flagged}
 								selectedId={selectedId}
 								showGuides={showBoxes}
 								onSelect={setSelectedId}

@@ -28,7 +28,7 @@ export function ShareDialog({ onShare, onClose }: { onShare(): Promise<string>; 
 
 	return (
 		<Dialog title="Share this layout" onClose={onClose}>
-			<p>Anyone with the link gets your design and where the text goes, and adds their own names.</p>
+			<p>Anyone with the link gets your design, where the text goes and any fonts you added, then adds their own names.</p>
 			<p className="wf-small wf-muted">Your list of names is never shared. It stays on this device.</p>
 			{state.kind === "done" && (
 				<div className="wf-share-link">

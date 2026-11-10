@@ -179,7 +179,7 @@ export const SAMPLE_GUESTS = [
 export function sampleSource(): DataSource {
 	return {
 		kind: "sample",
-		name: "Sample guests",
+		name: "the sample list",
 		grid: [["Họ tên", "Bàn"], ...SAMPLE_GUESTS.map((n, i) => [n, String(Math.floor(i / 2) + 1)])],
 		hasHeader: true,
 	};

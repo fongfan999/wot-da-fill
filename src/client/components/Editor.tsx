@@ -25,6 +25,8 @@ export interface EditorProps {
 	showGuides: boolean;
 	/** Short name for each box's tag, same order as fields. */
 	labels: string[];
+	/** Boxes the full check found too long for the name on show (shrunk far below the rest). */
+	flagged: Set<string>;
 	onSelect(id: string | null): void;
 	/** A box was clicked (pressed and released without dragging). */
 	onOpen(id: string): void;
@@ -34,7 +36,7 @@ export interface EditorProps {
 
 const SNAP_PX = 6;
 
-export function Editor({ image, fields, texts, selectedId, showGuides, labels, onSelect, onOpen, onChangeBox, onCreate }: EditorProps) {
+export function Editor({ image, fields, texts, selectedId, showGuides, labels, flagged, onSelect, onOpen, onChangeBox, onCreate }: EditorProps) {
 	const stageRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const overlayRef = useRef<HTMLDivElement>(null);
@@ -217,10 +219,11 @@ export function Editor({ image, fields, texts, selectedId, showGuides, labels, o
 				>
 					{fields.map((f, i) => {
 						const selected = f.id === selectedId;
+						const tooLong = overflow.has(f.id) || flagged.has(f.id);
 						return (
 							<div
 								key={f.id}
-								className={`wf-box${selected ? " wf-box-selected" : ""}${overflow.has(f.id) ? " wf-box-overflow" : ""}${showGuides ? "" : " wf-box-hidden"}`}
+								className={`wf-box${selected ? " wf-box-selected" : ""}${tooLong ? " wf-box-overflow" : ""}${showGuides ? "" : " wf-box-hidden"}`}
 								style={pct(f.box)}
 								onPointerDown={(e) => {
 									onSelect(f.id);
@@ -229,7 +232,7 @@ export function Editor({ image, fields, texts, selectedId, showGuides, labels, o
 							>
 								<span className="wf-box-tag">
 									{labels[i]}
-									{overflow.has(f.id) ? " · too long" : ""}
+									{tooLong ? " · too long" : ""}
 								</span>
 								{selected &&
 									HANDLES.map((hd) => (

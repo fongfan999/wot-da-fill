@@ -1,5 +1,5 @@
-import { useEffect, useId, useState } from "react";
-import { guessHasHeader, parseDelimited, readSpreadsheet, resolvePasteDelimiter, sampleSource, type Delimiter } from "../lib/data";
+import { useId, useState } from "react";
+import { guessHasHeader, readSpreadsheet, resolvePasteDelimiter, sampleSource, type Delimiter } from "../lib/data";
 import type { DataSource, Table } from "../types";
 import { Button, Notice, pickFile, Section, Select, Switch } from "./ui";
 
@@ -39,22 +39,6 @@ export function DataPanel({
 	const [over, setOver] = useState(false);
 	const [tweaking, setTweaking] = useState(false);
 	const typing = !source || source.kind === "paste";
-
-	// Re-read pasted text as it changes.
-	useEffect(() => {
-		if (source && source.kind !== "paste") return;
-		const t = setTimeout(() => {
-			if (!paste.trim()) {
-				if (source?.kind === "paste") onSource(null);
-				return;
-			}
-			const grid = parseDelimited(paste, delimiter);
-			const hasHeader = source?.kind === "paste" ? source.hasHeader : guessHasHeader(grid, "paste");
-			onSource({ kind: "paste", name: "what you pasted", grid, hasHeader });
-		}, 200);
-		return () => clearTimeout(t);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [paste, delimiter]);
 
 	const openFile = async (file: File) => {
 		onBusy("Reading your list…");
