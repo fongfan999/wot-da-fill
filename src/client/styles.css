@@ -1223,9 +1223,28 @@ input[type="color"]::-webkit-color-swatch {
 	padding: 12px 20px 16px;
 	color: var(--muted);
 }
-.credit a {
-	color: var(--ink);
-	font-weight: 550;
+.credit {
+	align-items: center;
+}
+.maker {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--muted);
+	font-family: var(--mono);
+	letter-spacing: 0.04em;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: color 160ms;
+}
+.maker:hover {
+	color: var(--accent);
+}
+.maker picture,
+.maker img {
+	display: block;
+	width: 16px;
+	height: 16px;
 }
 
 /* Dialogs */

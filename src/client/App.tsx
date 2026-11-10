@@ -496,12 +496,13 @@ export function App() {
 					</div>
 
 					<footer className="credit small">
-						<span>
-							Made by{" "}
-							<a href="https://wotdafong.dev" target="_blank" rel="noreferrer">
-								Wot Da Fong
-							</a>
-						</span>
+						<a className="maker" href="https://wotdafong.dev" target="_blank" rel="noreferrer" aria-label="Made by Wot Da Fong">
+							<picture>
+								<source srcSet="/wotdafong-paper.svg" media="(prefers-color-scheme: dark)" />
+								<img src="/wotdafong-ink.svg" alt="" width="16" height="16" />
+							</picture>
+							Wot Da Fong <span aria-hidden="true">↗</span>
+						</a>
 						<span className="muted">© {new Date().getFullYear()} Phong Phan</span>
 					</footer>
 				</aside>
