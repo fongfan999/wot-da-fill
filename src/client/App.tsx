@@ -3,18 +3,17 @@ import { DataPanel } from "./components/DataPanel";
 import { Editor } from "./components/Editor";
 import { FieldPanel } from "./components/FieldPanel";
 import { GenerateDialog } from "./components/GenerateDialog";
-import { OutputPanel } from "./components/OutputPanel";
 import { ShareDialog } from "./components/ShareDialog";
 import { FileDrop, Icon, Section, Toasts, type ToastMessage } from "./components/ui";
 import { buildTable, sampleSource } from "./lib/data";
-import { clampBox, DEFAULT_OUTPUT, newField } from "./lib/fields";
+import { clampBox, newField } from "./lib/fields";
 import { addCustomFont, DEFAULT_FONT, ensureFont } from "./lib/fonts";
-import { encodeOne, textsForRow } from "./lib/generate";
+import { textsForRow } from "./lib/generate";
 import { loadTemplateImage } from "./lib/image";
 import { createSampleTemplate } from "./lib/sample";
 import { loadSharedTemplate, shareTemplate } from "./lib/share";
-import { formatBytes, matchColumn, placeholdersIn, ROW_NUMBER, unknownPlaceholders } from "./lib/text";
-import type { Box, CustomFont, DataSource, Field, OutputSettings, TemplateImage } from "./types";
+import { formatBytes, matchColumn, placeholdersIn, ROW_NUMBER } from "./lib/text";
+import type { Box, CustomFont, DataSource, Field, TemplateImage } from "./types";
 
 const SHARE_PATH = /^\/t\/([A-Za-z0-9]{16})\/?$/;
 
@@ -24,7 +23,6 @@ export function App() {
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
 	const [source, setSource] = useState<DataSource | null>(null);
-	const [output, setOutput] = useState<OutputSettings>(DEFAULT_OUTPUT);
 	const [previewRow, setPreviewRow] = useState(0);
 	const [showGuides, setShowGuides] = useState(true);
 	const [expectedColumns, setExpectedColumns] = useState<string[]>([]);
@@ -59,7 +57,6 @@ export function App() {
 				setImage(t.image);
 				setFields(t.fields);
 				setCustomFonts(t.customFonts);
-				setOutput(t.output);
 				setExpectedColumns(t.columns);
 				setSelectedId(t.fields[0]?.id ?? null);
 				toast("Template loaded. Add your list to generate cards.", "success");
@@ -99,9 +96,6 @@ export function App() {
 				const lone = ph.length === 1 && f.text.trim() === `{${ph[0]}}`;
 				return lone && !matchColumn(ph[0], cols) ? { ...f, text: `{${cols[0]}}` } : f;
 			}),
-		);
-		setOutput((o) =>
-			unknownPlaceholders(o.filenamePattern, cols).length ? { ...o, filenamePattern: `{${ROW_NUMBER}}-{${cols[0]}}` } : o,
 		);
 	}, []);
 
@@ -252,7 +246,6 @@ export function App() {
 		setSelectedId(null);
 		setSource(null);
 		setExpectedColumns([]);
-		setOutput(DEFAULT_OUTPUT);
 		history.replaceState(null, "", "/");
 	};
 
@@ -447,15 +440,6 @@ export function App() {
 						)}
 					</Section>
 
-					<Section step={4} title="Export">
-						<OutputPanel
-							output={output}
-							image={image}
-							table={table}
-							onChange={setOutput}
-							onTest={() => encodeOne(image!, fields, customFonts, table, previewIndex, output)}
-						/>
-					</Section>
 
 					<div className="generate-bar">
 						<button
@@ -483,14 +467,14 @@ export function App() {
 
 			{generating && image && table && (
 				<GenerateDialog
-					params={{ template: image, fields, customFonts, table, output }}
+					params={{ template: image, fields, customFonts, table }}
 					onClose={() => setGenerating(false)}
 				/>
 			)}
 			{sharing && image && (
 				<ShareDialog
 					onShare={async () => {
-						const url = await shareTemplate(image, fields, customFonts, output, columns);
+						const url = await shareTemplate(image, fields, customFonts, columns);
 						history.replaceState(null, "", new URL(url).pathname);
 						return url;
 					}}

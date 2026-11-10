@@ -45,18 +45,6 @@ export interface CustomFont {
 }
 
 export type OutputFormat = "jpeg" | "png" | "webp";
-export type Compression = "small" | "balanced" | "high";
-
-export interface OutputSettings {
-	format: OutputFormat;
-	compression: Compression;
-	/** Longest edge in pixels; null keeps the template's size. */
-	maxEdge: number | null;
-	filenamePattern: string;
-	asciiFilenames: boolean;
-	/** Used to flatten transparent templates when exporting JPEG. */
-	background: string;
-}
 
 export interface TemplateImage {
 	blob: Blob;
@@ -65,7 +53,6 @@ export interface TemplateImage {
 	size: number;
 	width: number;
 	height: number;
-	hasAlpha: boolean;
 	bitmap: ImageBitmap;
 }
 
@@ -92,6 +79,5 @@ export interface SharedTemplateConfig {
 	image: { name: string; type: string; width: number; height: number };
 	fields: Field[];
 	fonts: { id: string; family: string; fileName: string }[];
-	output: OutputSettings;
 	columns: string[];
 }

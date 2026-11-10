@@ -144,8 +144,6 @@ export interface CardInput {
 	fields: Field[];
 	/** Final text for each field (placeholders filled, case applied), same order as fields. */
 	texts: string[];
-	/** Fill behind the image (for JPEG export of transparent designs). */
-	background?: string | null;
 }
 
 /** Draws the design + all text into ctx, scaled to fill ctx.canvas. Returns per-field layouts. */
@@ -153,10 +151,6 @@ export function renderCard(ctx: Ctx, input: CardInput): (TextLayout | null)[] {
 	const { width: cw, height: ch } = ctx.canvas;
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
 	ctx.clearRect(0, 0, cw, ch);
-	if (input.background) {
-		ctx.fillStyle = input.background;
-		ctx.fillRect(0, 0, cw, ch);
-	}
 	ctx.imageSmoothingEnabled = true;
 	ctx.imageSmoothingQuality = "high";
 	ctx.drawImage(input.image, 0, 0, cw, ch);
@@ -165,11 +159,4 @@ export function renderCard(ctx: Ctx, input: CardInput): (TextLayout | null)[] {
 	const layouts = input.fields.map((f, i) => drawText(ctx, f, input.texts[i] ?? ""));
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
 	return layouts;
-}
-
-export function outputSize(width: number, height: number, maxEdge: number | null): { width: number; height: number } {
-	const longest = Math.max(width, height);
-	if (!maxEdge || maxEdge >= longest) return { width, height };
-	const k = maxEdge / longest;
-	return { width: Math.max(1, Math.round(width * k)), height: Math.max(1, Math.round(height * k)) };
 }

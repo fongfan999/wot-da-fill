@@ -1,6 +1,6 @@
 # Wot Da Fill
 
-One design, a list of names, every card ready to send. Upload an invitation (or certificate, name badge...), mark where the name goes, load a CSV/Excel list or paste one, and download every personalized card as optimized images in a single zip.
+One design, a list of names, every card ready to send. Upload an invitation (or certificate, name badge...), mark where the name goes, load a CSV/Excel list or paste one, and download every personalized card, automatically compressed, in a single zip.
 
 Made by [Wot Da Fong](https://wotdafong.dev). No accounts, no sign-in.
 
@@ -11,9 +11,9 @@ Made by [Wot Da Fong](https://wotdafong.dev). No accounts, no sign-in.
 - **Fonts**: search all ~1,700 Google Fonts (Vietnamese-only filter on by default), curated invitation picks, or upload your own TTF/OTF/WOFF (SVN-/UTM- fonts work). Weight and italic, color, alignment, letter case, letter spacing, line height.
 - **Fitting**: long names shrink to fit their box (with a minimum size); optional wrapping onto several lines. The preview flags boxes that still overflow, and "Longest" jumps to the longest name.
 - **Lists**: CSV / TSV / XLSX / XLS / ODS (sheet picker), or paste (one per line, or cells copied from Excel/Sheets). Handles UTF-8, UTF-16 and Windows-1258 CSVs, normalizes Vietnamese to NFC, and formats unformatted dates as dd/mm/yyyy.
-- **Export, Clop-style**: MozJPEG (progressive), PNG quantized to a dithered palette and then OxiPNG, or WebP; three compression levels, optional downscaling, metadata stripped. "Test one card" shows the real file size before a full run.
-- **Generate**: progress bar with speed, time left, average size and savings versus your design file; cancel any time. The zip uses your file-name pattern (optional accent removal) and includes `_manifest.csv` mapping files to rows.
-- **Share template**: uploads the design, layout, fonts and settings (never the list) and returns a `/t/<id>` link.
+- **Automatic compression, TinyPNG/Clop style**: nothing to configure. Cards keep the design's format and size: JPEG designs become MozJPEG (quality 80, progressive), PNG designs get a dithered 256-color palette plus OxiPNG, WebP stays WebP. Metadata is stripped.
+- **Generate**: progress bar with speed, time left, average size and savings versus your design file; cancel any time. Files are named `001-<name>.<ext>` from the first column the text uses, and the zip includes `_manifest.csv` mapping files to rows.
+- **Share template**: uploads the design, layout and fonts (never the list) and returns a `/t/<id>` link.
 
 ## How it works
 

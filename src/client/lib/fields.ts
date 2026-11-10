@@ -1,4 +1,4 @@
-import type { Box, Field, FontRef, OutputSettings } from "../types";
+import type { Box, Field, FontRef } from "../types";
 import { DEFAULT_FONT } from "./fonts";
 import { uid } from "./text";
 
@@ -31,14 +31,6 @@ export function clampBox(b: Box, width: number, height: number): Box {
 	return roundBox({ x: Math.min(Math.max(0, b.x), width - w), y: Math.min(Math.max(0, b.y), height - h), w, h });
 }
 
-export const DEFAULT_OUTPUT: OutputSettings = {
-	format: "jpeg",
-	compression: "balanced",
-	maxEdge: null,
-	filenamePattern: "{#}-{Name}",
-	asciiFilenames: false,
-	background: "#ffffff",
-};
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const num = (v: unknown, min: number, max: number, dflt: number) =>
@@ -77,14 +69,3 @@ export function sanitizeField(input: unknown, width: number, height: number): Fi
 	};
 }
 
-export function sanitizeOutput(input: unknown): OutputSettings {
-	const o = (input ?? {}) as Partial<OutputSettings>;
-	return {
-		format: pick(o.format, ["jpeg", "png", "webp"] as const, DEFAULT_OUTPUT.format),
-		compression: pick(o.compression, ["small", "balanced", "high"] as const, DEFAULT_OUTPUT.compression),
-		maxEdge: typeof o.maxEdge === "number" && o.maxEdge > 0 ? Math.round(o.maxEdge) : null,
-		filenamePattern: str(o.filenamePattern, DEFAULT_OUTPUT.filenamePattern, 200),
-		asciiFilenames: o.asciiFilenames === true,
-		background: typeof o.background === "string" && HEX.test(o.background) ? o.background : "#ffffff",
-	};
-}

@@ -1,13 +1,12 @@
-import type { CustomFont, Field, OutputSettings, SharedTemplateConfig, TemplateImage } from "../types";
+import type { CustomFont, Field, SharedTemplateConfig, TemplateImage } from "../types";
 import { registerCustomFont } from "./fonts";
-import { sanitizeField, sanitizeOutput } from "./fields";
+import { sanitizeField } from "./fields";
 import { loadTemplateImage } from "./image";
 
 export async function shareTemplate(
 	image: TemplateImage,
 	fields: Field[],
 	customFonts: CustomFont[],
-	output: OutputSettings,
 	columns: string[],
 ): Promise<string> {
 	const used = customFonts.filter((f) => fields.some((fl) => fl.font.source === "custom" && fl.font.family === f.family));
@@ -16,7 +15,6 @@ export async function shareTemplate(
 		image: { name: image.name, type: image.type, width: image.width, height: image.height },
 		fields,
 		fonts: used.map(({ id, family, fileName }) => ({ id, family, fileName })),
-		output,
 		columns,
 	};
 	const form = new FormData();
@@ -34,7 +32,6 @@ export interface LoadedTemplate {
 	image: TemplateImage;
 	fields: Field[];
 	customFonts: CustomFont[];
-	output: OutputSettings;
 	columns: string[];
 }
 
@@ -62,7 +59,6 @@ export async function loadSharedTemplate(id: string): Promise<LoadedTemplate> {
 		image,
 		fields: (Array.isArray(config.fields) ? config.fields : []).map((f) => sanitizeField(f, image.width, image.height)),
 		customFonts,
-		output: sanitizeOutput(config.output),
 		columns: Array.isArray(config.columns) ? config.columns.filter((c) => typeof c === "string") : [],
 	};
 }

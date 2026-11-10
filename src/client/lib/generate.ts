@@ -1,10 +1,10 @@
 import { makeZip, predictLength } from "client-zip";
-import type { CustomFont, Field, OutputSettings, Table, TemplateImage } from "../types";
-import { codecFor, EXTENSION, MIME, type CodecSettings } from "./codec";
+import type { CustomFont, Field, OutputFormat, Table, TemplateImage } from "../types";
+import { codecFor, EXTENSION, formatFor, MIME, type CodecSettings } from "./codec";
 import { ensureFont, registerCustomFont } from "./fonts";
 import { EncoderPool } from "./pool";
-import { outputSize, renderCard } from "./render";
-import { applyCase, buildFilenames, fillTemplate } from "./text";
+import { renderCard } from "./render";
+import { applyCase, buildFilenames, fillTemplate, matchColumn, placeholdersIn, ROW_NUMBER } from "./text";
 
 export interface GeneratedFile {
 	name: string;
@@ -40,7 +40,6 @@ export interface Job {
 	fields: Field[];
 	customFonts: CustomFont[];
 	table: Table;
-	output: OutputSettings;
 	signal: AbortSignal;
 	onProgress(p: Progress): void;
 }
@@ -75,7 +74,7 @@ function createCanvas(width: number, height: number) {
 const nextFrame = () => new Promise<void>((r) => setTimeout(r, 0));
 
 /** Native browser encoder, used only if a WASM encode fails for some reason. */
-function nativeEncode(canvas: HTMLCanvasElement, format: OutputSettings["format"], quality: number): Promise<Blob> {
+function nativeEncode(canvas: HTMLCanvasElement, format: OutputFormat, quality: number): Promise<Blob> {
 	return new Promise((resolve, reject) =>
 		canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Encoding failed"))), MIME[format], quality / 100),
 	);
@@ -86,7 +85,7 @@ function codecQuality(c: CodecSettings): number {
 }
 
 export async function generateAll(job: Job): Promise<GenerateResult> {
-	const { template, fields, table, output, signal } = job;
+	const { template, fields, table, signal } = job;
 	const startedAt = performance.now();
 	const total = table.rows.length;
 	const progress: Progress = { phase: "fonts", done: 0, total, bytes: 0, startedAt };
@@ -102,11 +101,11 @@ export async function generateAll(job: Job): Promise<GenerateResult> {
 	await prepareFonts(fields, job.customFonts, table);
 	signal.throwIfAborted();
 
-	const { width, height } = outputSize(template.width, template.height, output.maxEdge);
-	const codec = codecFor(output.format, output.compression);
-	const ext = EXTENSION[output.format];
-	const names = buildFilenames(output.filenamePattern, table.rows, table.columns, ext, output.asciiFilenames);
-	const background = output.format === "jpeg" && template.hasAlpha ? output.background : null;
+	// Everything is automatic: same format and size as the design, compressed TinyPNG-style.
+	const { width, height } = template;
+	const format = formatFor(template.type);
+	const codec = codecFor(format);
+	const names = buildFilenames(`{${ROW_NUMBER}}-{${nameColumn(fields, table)}}`, table.rows, table.columns, EXTENSION[format], false);
 	const runId = Math.random().toString(36).slice(2);
 
 	const { ctx } = createCanvas(width, height);
@@ -116,7 +115,6 @@ export async function generateAll(job: Job): Promise<GenerateResult> {
 		height: template.height,
 		fields,
 		texts: textsForRow(fields, table, i),
-		background,
 	});
 	const pool = new EncoderPool();
 	const abort = () => pool.close();
@@ -139,14 +137,14 @@ export async function generateAll(job: Job): Promise<GenerateResult> {
 
 			const task = pool
 				.encode(runId, pixels, codec)
-				.then((buf) => new Blob([buf], { type: MIME[output.format] }))
+				.then((buf) => new Blob([buf], { type: MIME[format] }))
 				.catch(async (err: Error) => {
 					if (signal.aborted) throw err;
 					// Rare: re-render this card on its own canvas and use the browser's encoder.
 					console.warn(`Row ${i + 1}: WASM encode failed, using browser encoder`, err);
 					const spare = createCanvas(width, height);
 					renderCard(spare.ctx, cardInput(i));
-					return nativeEncode(spare.canvas, output.format, codecQuality(codec));
+					return nativeEncode(spare.canvas, format, codecQuality(codec));
 				})
 				.then((blob) => {
 					results[i] = { name: names[i], blob, row: i };
@@ -215,32 +213,13 @@ function manifestCsv(files: GeneratedFile[], table: Table): string {
 	return "﻿" + [header, ...lines].join("\r\n");
 }
 
-/** Encodes one card with the real pipeline to estimate size/quality before a full run. */
-export async function encodeOne(
-	template: TemplateImage,
-	fields: Field[],
-	customFonts: CustomFont[],
-	table: Table | null,
-	rowIndex: number,
-	output: OutputSettings,
-): Promise<Blob> {
-	await prepareFonts(fields, customFonts, table);
-	const { width, height } = outputSize(template.width, template.height, output.maxEdge);
-	const { ctx } = createCanvas(width, height);
-	renderCard(ctx, {
-		image: template.bitmap,
-		width: template.width,
-		height: template.height,
-		fields,
-		texts: textsForRow(fields, table, rowIndex),
-		background: output.format === "jpeg" && template.hasAlpha ? output.background : null,
-	});
-	const pool = new EncoderPool(1);
-	try {
-		const codec = codecFor(output.format, output.compression);
-		const buf = await pool.encode("test", ctx.getImageData(0, 0, width, height), codec);
-		return new Blob([buf], { type: MIME[output.format] });
-	} finally {
-		pool.close();
+/** File names use the first column the text areas actually print (usually the name). */
+function nameColumn(fields: Field[], table: Table): string {
+	for (const f of fields) {
+		for (const p of placeholdersIn(f.text)) {
+			const col = p !== ROW_NUMBER && matchColumn(p, table.columns);
+			if (col) return col;
+		}
 	}
+	return table.columns[0] ?? ROW_NUMBER;
 }

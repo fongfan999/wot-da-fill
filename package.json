@@ -1,6 +1,7 @@
 {
 	"name": "wot-da-fill",
 	"type": "module",
+	"packageManager": "pnpm@12.18.0",
 	"scripts": {
 		"dev": "vite",
 		"build": "tsc -b && vite build",
