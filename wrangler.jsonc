@@ -7,6 +7,7 @@
 	"name": "wot-da-fill",
 	"main": "src/worker/index.ts",
 	"compatibility_date": "2026-11-08",
+	"routes": [{ "pattern": "fill.wotda.app", "custom_domain": true }],
 	/**
 	 * The React app is built by Vite (@cloudflare/vite-plugin) and served as static assets.
 	 * Unknown paths (e.g. /t/<id> share links) fall back to index.html; /api/* always hits the Worker.

@@ -46,11 +46,11 @@ pnpm preview      # serve the production build in workerd
 
 ## Deploy
 
-One-time: create the R2 bucket, and optionally expire shared templates after 90 days.
+One-time: create the R2 bucket, and optionally expire shared templates after 30 days.
 
 ```sh
 pnpm wrangler r2 bucket create wot-da-fill-templates
-pnpm wrangler r2 bucket lifecycle add wot-da-fill-templates expire-templates t/ --expire-days 90
+pnpm wrangler r2 bucket lifecycle add wot-da-fill-templates expire-templates t/ --expire-days 30
 ```
 
 Then:
