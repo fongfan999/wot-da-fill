@@ -78,7 +78,7 @@ export function layoutText(ctx: Ctx, field: Field, text: string): TextLayout {
 		widest(lines) <= box.w + 0.5 && (!field.wrap || blockHeight(size, lines.length) <= box.h + 0.5);
 
 	const max = Math.max(1, field.fontSize);
-	const min = Math.max(1, Math.min(field.minFontSize, max));
+	const min = 1;
 	let size = max;
 	let result = linesAt(ctx, field, text, size);
 

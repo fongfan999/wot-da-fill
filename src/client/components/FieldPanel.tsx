@@ -221,26 +221,7 @@ function FieldEditor({
 			</div>
 
 			<div className="grid-2">
-				<NumberField
-					label={field.autoFit ? "Max size" : "Size"}
-					value={field.fontSize}
-					min={1}
-					max={2000}
-					suffix="px"
-					onChange={(v) => set({ fontSize: v, minFontSize: Math.min(field.minFontSize, v) })}
-				/>
-				{field.autoFit ? (
-					<NumberField
-						label="Min size"
-						value={field.minFontSize}
-						min={1}
-						max={field.fontSize}
-						suffix="px"
-						onChange={(v) => set({ minFontSize: v })}
-					/>
-				) : (
-					<span />
-				)}
+				<NumberField label="Size" value={field.fontSize} min={1} max={2000} suffix="px" onChange={(v) => set({ fontSize: v })} />
 			</div>
 			<Switch
 				checked={field.autoFit}

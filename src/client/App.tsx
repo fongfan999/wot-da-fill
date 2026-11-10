@@ -113,7 +113,6 @@ export function App() {
 						...f,
 						box: clampBox({ x: f.box.x * kx, y: f.box.y * ky, w: f.box.w * kx, h: f.box.h * ky }, next.width, next.height),
 						fontSize: Math.round(f.fontSize * kx),
-						minFontSize: Math.max(1, Math.round(f.minFontSize * kx)),
 					})),
 				);
 			}

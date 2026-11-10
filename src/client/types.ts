@@ -23,9 +23,8 @@ export interface Field {
 	text: string;
 	box: Box;
 	font: FontRef;
-	/** Font size in template pixels (the maximum when autoFit is on). */
+	/** Font size in template pixels; with autoFit, long text shrinks below it as far as needed. */
 	fontSize: number;
-	minFontSize: number;
 	autoFit: boolean;
 	wrap: boolean;
 	lineHeight: number;

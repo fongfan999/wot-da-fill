@@ -9,7 +9,6 @@ export function newField(box: Box, text: string, font: FontRef = DEFAULT_FONT): 
 		box: roundBox(box),
 		font: { ...font },
 		fontSize: Math.max(12, Math.round(box.h * 0.75)),
-		minFontSize: Math.max(8, Math.round(box.h * 0.3)),
 		autoFit: true,
 		wrap: false,
 		lineHeight: 1.2,
@@ -57,7 +56,6 @@ export function sanitizeField(input: unknown, width: number, height: number): Fi
 	return {
 		...base,
 		fontSize: num(f.fontSize, 1, 2000, base.fontSize),
-		minFontSize: num(f.minFontSize, 1, 2000, base.minFontSize),
 		autoFit: f.autoFit !== false,
 		wrap: f.wrap === true,
 		lineHeight: num(f.lineHeight, 0.5, 4, 1.2),

@@ -91,12 +91,10 @@ export async function createSampleTemplate(): Promise<{ blob: Blob; fields: Fiel
 
 	const name = newField({ x: 420, y: 560, w: 1160, h: 160 }, "{Họ tên}", script);
 	name.fontSize = 130;
-	name.minFontSize = 60;
 	name.color = "#8a6730";
 
 	const table = newField({ x: 760, y: 1170, w: 480, h: 56 }, "Bàn số {Bàn}", sans);
 	table.fontSize = 32;
-	table.minFontSize = 20;
 	table.letterSpacing = 12;
 	table.textCase = "upper";
 	table.color = INK;
