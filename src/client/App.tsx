@@ -340,6 +340,7 @@ export function App() {
 								</div>
 								)}
 								<div className="toolbar-right">
+									<div className="history" role="group" aria-label="History">
 									<button
 										type="button"
 										className="icon-btn"
@@ -360,6 +361,7 @@ export function App() {
 									>
 										<Icon name="redo" />
 									</button>
+									</div>
 									<span className="muted small dims">
 										{image.width} × {image.height} · {formatBytes(image.size)}
 									</span>

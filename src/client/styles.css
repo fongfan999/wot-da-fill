@@ -772,11 +772,13 @@ input[type="number"]::-webkit-inner-spin-button {
 	background: color-mix(in srgb, var(--accent) 14%, transparent);
 	pointer-events: none;
 }
-.overlay.clean .box:not(.selected) {
+/* Clean preview: hide every box, even the selected one, so the card shows exactly as exported. */
+.overlay.clean .box {
 	outline-color: transparent;
 	background: transparent;
 }
-.overlay.clean .box:not(.selected) .box-tag {
+.overlay.clean .box-tag,
+.overlay.clean .handle {
 	display: none;
 }
 .box-tag {
@@ -1564,4 +1566,21 @@ input[type="color"]::-webkit-color-swatch {
 		width: 30px;
 		padding: 0;
 	}
+}
+
+/* Undo and redo sit together as one pair, set apart from the design info. */
+.history {
+	display: flex;
+	align-items: center;
+	margin-right: 4px;
+}
+.history::after {
+	content: "";
+	width: 1px;
+	height: 18px;
+	margin-left: 8px;
+	background: var(--line);
+}
+.history .icon-btn {
+	width: 30px;
 }
