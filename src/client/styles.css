@@ -707,6 +707,13 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 .wf-exdemo-card[data-kind="badge"]::before, .wf-exdemo-card[data-kind="badge"]::after { border-radius: 5%; }
 .wf-exdemo .wf-namelist { position: absolute; left: 3%; bottom: 4%; z-index: 1; width: 41%; rotate: -2.5deg; }
 .wf-exdemo .wf-namelist li { cursor: pointer; }
+/* Switching examples: both cards share the stage's one cell; the old one lifts away as the new one
+   rises into place with its sheets. */
+.wf-exdemo-stage > .wf-exdemo-card { grid-area: 1 / 1; }
+@keyframes wf-exdemo-in { from { opacity: 0; translate: 0 4%; scale: 0.96; } }
+@keyframes wf-exdemo-out { to { opacity: 0; translate: 0 -3%; scale: 0.97; } }
+.wf-exdemo-in { animation: wf-exdemo-in 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.wf-exdemo-out { pointer-events: none; animation: wf-exdemo-out 360ms ease-in both; }
 .wf-exdemo-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
 
 .wf-namelist {

@@ -8,6 +8,8 @@ const IMAGES = "image/jpeg,image/png,image/webp";
 const FACT_ICONS: IconName[] = ["people", "ruler", "font", "download"];
 /** How long each name stays before the next one settles onto the card. */
 const STEP_MS = 900;
+/** How long one example takes to give way to the next. */
+const SWAP_MS = 480;
 
 /**
  * The home page (design system HomeScreen): what the product does, how little it takes, and the
@@ -238,12 +240,38 @@ function ExampleDemo({ lang, kind, onKind }: { lang: Lang; kind: ExampleKind; on
 		return () => clearInterval(timer);
 	}, [kind, lang, paused, chosen, names.length, onKind]);
 
+	// Draw all three examples up front, so switching never waits on a blank card.
+	useEffect(() => {
+		EXAMPLE_KINDS.forEach((k) => getShowcase(lang, k).catch(() => {}));
+	}, [lang]);
+
+	// The example being left stays a moment, fading out under the one arriving.
+	const [leaving, setLeaving] = useState<{ kind: ExampleKind; row: number } | null>(null);
+	const shownKind = useRef(kind);
+	const shownRow = useRef(0);
+	useEffect(() => {
+		if (shownKind.current === kind) return;
+		setLeaving({ kind: shownKind.current, row: shownRow.current });
+		shownKind.current = kind;
+		const timer = setTimeout(() => setLeaving(null), SWAP_MS);
+		return () => clearTimeout(timer);
+	}, [kind, names.length]);
+
 	const at = index % names.length;
+	// Remember which name was on show, for the card that fades out when the example changes.
+	useEffect(() => {
+		shownRow.current = at;
+	}, [at, kind]);
 	return (
 		<div className="wf-exdemo">
 			<div className="wf-exdemo-stage" role="img" aria-label={h.pictureLabel} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-				<div className="wf-exdemo-card" data-kind={kind}>
-					<ExamplePic lang={lang} kind={kind} width="100%" row={at} animate />
+				{leaving && (
+					<div key={`out-${leaving.kind}`} className="wf-exdemo-card wf-exdemo-out" data-kind={leaving.kind} aria-hidden="true">
+						<ExamplePic lang={lang} kind={leaving.kind} width="100%" row={leaving.row} />
+					</div>
+				)}
+				<div key={kind} className={`wf-exdemo-card${leaving ? " wf-exdemo-in" : ""}`} data-kind={kind}>
+					<ExamplePic lang={lang} kind={kind} width="100%" row={at} animate={!leaving} />
 				</div>
 				<NameList names={names} lang={lang} current={at} extras={kind === "badge" ? extras : null} onPick={setIndex} />
 			</div>
