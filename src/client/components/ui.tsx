@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { LOGO } from "../lib/logo";
 
 /** One icon set: 24px grid, 1.8 stroke, round caps and joins, drawn in the text colour. */
 const PATHS = {
@@ -59,25 +60,36 @@ export function Icon({ name, size = 18, label }: { name: IconName; size?: number
 
 const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(" ");
 
-/** The product icon: a card with a filled-in name line. Deliberately not the Wot Da Fong mark. */
-export function ProductMark() {
+/**
+ * The Wot Da Fill logo: the two-card mark, then "Wot Da" in the Wot Da Fong brush lettering and
+ * "Fill" in cobalt. `size` is the lettering height; the lettering hides itself on narrow screens.
+ */
+export function ProductMark({ size = 26 }: { size?: number }) {
+	// Below 40px the strokes are drawn heavier so the cards stay crisp.
+	const small = size < 40;
 	return (
-		<span className="wf-product">
-			<svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
-				<rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)" />
-				<rect x="7" y="9" width="18" height="14" rx="2" fill="var(--paper-raised)" />
-				<path
-					d="M10.5 17.2c1.6-2.6 3-2.6 3.4-.6.3 1.4 1.4 1.6 2.6-.2.8-1.2 1.7-1.3 2.2-.3.4.8 1.2.9 2.3.1"
-					fill="none"
-					stroke="var(--accent)"
-					strokeWidth="1.6"
-					strokeLinecap="round"
-				/>
-				<path d="M10 20.3h12" stroke="var(--ink-soft)" strokeWidth="1" strokeLinecap="round" />
+		<span className="wf-product" role="img" aria-label="Wot Da Fill" style={{ gap: size * 0.23 }}>
+			<svg
+				className="wf-product-mark"
+				viewBox="4 11.5 56.5 45"
+				height={size * 0.88}
+				fill="none"
+				strokeWidth={small ? 4.6 : 3.6}
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				aria-hidden="true"
+			>
+				<path stroke="var(--ink)" d={LOGO.back} />
+				<path stroke="var(--ink)" d={LOGO.front} />
+				<path stroke="var(--accent)" strokeWidth={small ? 4.2 : 3.2} d={LOGO.sign} />
+				<path stroke="var(--ink)" strokeWidth={small ? 2.2 : 1.5} d={LOGO.rule} />
+				<circle fill="var(--warm)" stroke="none" cx={43.2} cy={29.6} r={2.3} />
 			</svg>
-			<span className="wf-product-name">
-				Wot Da <em>Fill</em>
-			</span>
+			<svg className="wf-product-name" viewBox={LOGO.viewBox} height={size} aria-hidden="true">
+				<path fill="var(--ink)" d={LOGO.wot} />
+				<path fill="var(--accent)" d={LOGO.fill} />
+				<ellipse fill="var(--accent)" cx={LOGO.dot[0]} cy={LOGO.dot[1]} rx={5.6} ry={5.2} />
+			</svg>
 		</span>
 	);
 }

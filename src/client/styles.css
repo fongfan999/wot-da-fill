@@ -105,16 +105,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .wf-row .wf-seg button { padding: 0 var(--space-2); }
 
 /* Brand */
-.wf-product {
-	display: inline-flex; align-items: center; gap: 10px;
-	color: var(--ink); font-size: 19px; font-weight: 600; letter-spacing: -0.4px;
-	white-space: nowrap; text-decoration: none;
-}
-.wf-product em {
-	padding-left: 1px;
-	font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 1.1em;
-	color: var(--accent);
-}
+.wf-product { display: inline-flex; align-items: flex-end; text-decoration: none; }
+.wf-product svg { display: block; width: auto; overflow: visible; }
+/* The mark stands on the lettering's baseline, which sits a little above the bottom of the lettering's box. */
+.wf-product-mark:not(:only-child) { margin-bottom: 1px; }
 .wf-madeby {
 	display: inline-flex; align-items: center; gap: 6px;
 	color: var(--muted); font: 12px var(--font-mono); letter-spacing: 0.04em;
@@ -494,7 +488,7 @@ textarea.wf-input { resize: vertical; }
 	.wf-stage { height: 56vh; }
 	.wf-panel { border-left: 0; border-top: 1px solid var(--line); }
 	.wf-panel-foot { position: sticky; bottom: 0; background: var(--paper); }
-	.wf-step-label, .wf-product-name { display: none; }
+	.wf-step-label, .wf-product .wf-product-name { display: none; }
 	.wf-step-current .wf-step-label { display: inline; }
 }
 
@@ -505,7 +499,6 @@ textarea.wf-input { resize: vertical; }
 /* ---- App-only pieces: things that live in the running product, not in the system's previews ---- */
 .wf-step:disabled { cursor: default; background: transparent; color: var(--muted); }
 .wf-step-current:disabled { background: var(--paper-raised); color: var(--ink); }
-.wf-product-name em { font-size: 1.1em; }
 
 /* Native dialog */
 dialog.wf-dialog { padding: 0; max-height: calc(100vh - 48px); }

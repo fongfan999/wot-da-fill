@@ -1,15 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-	<style>
-		.tile { fill: #3453b6; }
-		.card { fill: #fcfaf4; }
-		.ink { stroke: #3453b6; }
-		@media (prefers-color-scheme: dark) {
-			.tile { fill: #93a9ff; }
-			.card { fill: #1b1e19; }
-			.ink { stroke: #93a9ff; }
-		}
-	</style>
-	<rect class="tile" x="1" y="1" width="30" height="30" rx="8" />
-	<rect class="card" x="7" y="9" width="18" height="14" rx="2" />
-	<path class="ink" d="M10.5 17.2c1.6-2.6 3-2.6 3.4-.6.3 1.4 1.4 1.6 2.6-.2.8-1.2 1.7-1.3 2.2-.3.4.8 1.2.9 2.3.1" fill="none" stroke-width="1.8" stroke-linecap="round" />
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Wot Da Fill"><rect width="64" height="64" rx="14" fill="#f7f5ee"></rect><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="#262a25" stroke-width="5.4" d="M13 16.6Q32 14.4 51.4 15.7Q55.9 16 56.1 20.5Q57 32 56.1 43.6Q55.8 48 51.3 48.3Q32 49.7 13.2 48.7Q8.7 48.4 8.5 44Q7.7 32.5 8.6 21Q8.8 16.9 13 16.6Z"></path><path stroke="#3453b6" stroke-width="5.2" d="M17.5 36.5c4.6-8.6 8.8-8.8 10-2 .9 4.6 4.2 5.2 7.6-.7 2.4-4 5-4.4 6.5-1 1.2 2.6 3 3 5.4.8"></path></g></svg>
