@@ -1,12 +1,13 @@
 import { useId, useState } from "react";
 import { guessHasHeader, readSpreadsheet, resolvePasteDelimiter, sampleSource, type Delimiter } from "../lib/data";
+import { EXAMPLE } from "../lib/example";
+import { useLang, useT } from "../lib/i18n";
 import type { DataSource, Table } from "../types";
 import { Button, Notice, pickFile, Section, Select, Switch } from "./ui";
 
 const PREVIEW_ROWS = 200;
 const SPREADSHEETS = ".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.ods,text/csv";
 
-const names = (n: number) => `${n.toLocaleString("en-US")} ${n === 1 ? "name" : "names"}`;
 
 export function DataPanel({
 	source,
@@ -35,23 +36,25 @@ export function DataPanel({
 	onError(message: string): void;
 	onBusy(message: string | null): void;
 }) {
+	const t = useT();
+	const [lang] = useLang();
 	const pasteId = useId();
 	const [over, setOver] = useState(false);
 	const [tweaking, setTweaking] = useState(false);
 	const typing = !source || source.kind === "paste";
 
 	const openFile = async (file: File) => {
-		onBusy("Reading your list…");
+		onBusy(t.readingList);
 		try {
 			const wb = await readSpreadsheet(file);
 			const sheets = wb.sheets.filter((s) => wb.read(s).length);
 			const sheet = sheets[0] ?? wb.sheets[0];
 			const grid = wb.read(sheet);
-			if (!grid.length) throw new Error("That file has no names in it.");
+			if (!grid.length) throw new Error(t.fileNoNames);
 			onPaste("");
 			onSource({ kind: "file", name: file.name, grid, hasHeader: guessHasHeader(grid, "file"), sheets, sheet, readSheet: wb.read });
 		} catch (err) {
-			onError(err instanceof Error ? err.message : "Couldn't read that file. Try saving it as Excel or CSV.");
+			onError(err instanceof Error ? err.message : t.couldntReadFile);
 		} finally {
 			onBusy(null);
 		}
@@ -76,28 +79,28 @@ export function DataPanel({
 
 	const rows = table?.rows.length ?? 0;
 	const headingsSwitch = source && (
-		<Switch checked={source.hasHeader} onChange={(hasHeader) => onSource({ ...source, hasHeader })} label="The first row is headings" />
+		<Switch checked={source.hasHeader} onChange={(hasHeader) => onSource({ ...source, hasHeader })} label={t.headings} />
 	);
 	const showHeadings = !!source && ((table?.columns.length ?? 0) > 1 || source.hasHeader);
 
 	return (
 		<Section
-			title="Names"
+			title={t.namesTitle}
 			aside={
 				source && source.kind !== "paste" ? (
 					<Button size="sm" onClick={clear}>
-						Replace list
+						{t.replaceList}
 					</Button>
 				) : source ? (
 					<Button size="sm" variant="ghost" onClick={clear}>
-						Clear
+						{t.clear}
 					</Button>
 				) : null
 			}
 		>
 			{!source && expectedColumns.length > 0 && (
 				<Notice>
-					This layout uses <b>{expectedColumns.join(" and ")}</b>. Add a list with those headings.
+					{t.layoutUses(expectedColumns)}
 				</Notice>
 			)}
 
@@ -117,27 +120,33 @@ export function DataPanel({
 					}}
 				>
 					<label className="wf-label" htmlFor={pasteId}>
-						Paste your names, or drop a spreadsheet here
+						{t.pasteLabel}
 					</label>
 					<textarea
 						id={pasteId}
 						className="wf-input"
 						rows={source ? 4 : 7}
-						placeholder={"Nguyễn Văn An\nTrần Thị Bích Ngọc\nLê Hoàng Minh Châu"}
+						placeholder={EXAMPLE[lang].showcase.slice(0, 3).join("\n")}
 						value={paste}
 						onChange={(e) => onPaste(e.target.value)}
 					/>
-					<p className="wf-hint">One name per line, or copy cells from Excel or Google Sheets. Excel, CSV and Numbers files work too.</p>
+					<p className="wf-hint">{t.pasteHint}</p>
 				</div>
 			)}
 
 			{!source && (
 				<p className="wf-or">
-					Or <Button variant="link" onClick={chooseFile}>choose a spreadsheet file</Button>
+					{t.or}{" "}
+					<Button variant="link" onClick={chooseFile}>
+						{t.chooseSpreadsheet}
+					</Button>
 					{!expectedColumns.length && (
 						<>
 							{" "}
-							· <Button variant="link" onClick={() => onSource(sampleSource())}>try sample names</Button>
+							·{" "}
+							<Button variant="link" onClick={() => onSource(sampleSource())}>
+								{t.trySampleNames}
+							</Button>
 						</>
 					)}
 				</p>
@@ -146,8 +155,11 @@ export function DataPanel({
 			{source && table && (
 				<>
 					<p>
-						<b>{names(rows)}</b>
-						<span className="wf-muted"> from {source.name}</span>
+						<b>{t.nameCount(rows)}</b>
+						<span className="wf-muted">
+							{" "}
+							{t.from} {source.kind === "paste" ? t.pastedList : source.kind === "sample" ? t.sampleList : source.name}
+						</span>
 						{source.sheets && source.sheets.length > 1 && <span className="wf-muted"> · {source.sheet}</span>}
 					</p>
 					{rows > 0 && (
@@ -155,7 +167,7 @@ export function DataPanel({
 							<table>
 								<thead>
 									<tr>
-										<th scope="col">No.</th>
+										<th scope="col">{t.rowNo}</th>
 										{table.columns.map((c) => (
 											<th key={c} scope="col">
 												{c}
@@ -165,7 +177,7 @@ export function DataPanel({
 								</thead>
 								<tbody>
 									{table.rows.slice(0, PREVIEW_ROWS).map((r, i) => (
-										<tr key={i} aria-selected={i === previewRow} onClick={() => onPreviewRow(i)} title="Show this name on the design">
+										<tr key={i} aria-selected={i === previewRow} onClick={() => onPreviewRow(i)} title={t.showThisName}>
 											<td>{i + 1}</td>
 											{table.columns.map((c) => (
 												<td key={c}>{r[c]}</td>
@@ -175,15 +187,15 @@ export function DataPanel({
 								</tbody>
 							</table>
 							{rows > PREVIEW_ROWS && (
-								<p className="wf-table-more">and {(rows - PREVIEW_ROWS).toLocaleString("en-US")} more. Every one gets a card.</p>
+								<p className="wf-table-more">{t.andMore(rows - PREVIEW_ROWS)}</p>
 							)}
 						</div>
 					)}
-					{rows === 0 && <p className="wf-hint">There are no names under the headings yet.</p>}
+					{rows === 0 && <p className="wf-hint">{t.noNamesYet}</p>}
 					{showHeadings && headingsSwitch}
 					{source.sheets && source.sheets.length > 1 && (
 						<Select
-							label="Sheet"
+							label={t.sheet}
 							value={source.sheet ?? ""}
 							options={source.sheets.map((s) => ({ value: s, label: s }))}
 							onChange={switchSheet}
@@ -194,15 +206,15 @@ export function DataPanel({
 							<div className="wf-tweaks">
 								{source.kind === "paste" && (
 									<Select
-										label="How the names are split"
+										label={t.howSplit}
 										value={delimiter}
 										onChange={(v) => onDelimiter(v as Delimiter)}
 										options={[
-											{ value: "auto", label: `Work it out (${resolvePasteDelimiter(paste, "auto") === "tab" ? "spreadsheet cells" : "one per line"})` },
-											{ value: "line", label: "One name per line" },
-											{ value: "tab", label: "Cells copied from a spreadsheet" },
-											{ value: "comma", label: "Commas" },
-											{ value: "semicolon", label: "Semicolons" },
+											{ value: "auto", label: t.workItOut(resolvePasteDelimiter(paste, "auto") === "tab") },
+											{ value: "line", label: t.splitLine },
+											{ value: "tab", label: t.splitTab },
+											{ value: "comma", label: t.splitComma },
+											{ value: "semicolon", label: t.splitSemicolon },
 										]}
 									/>
 								)}
@@ -211,7 +223,7 @@ export function DataPanel({
 						) : (
 							<p className="wf-or">
 								<Button variant="link" onClick={() => setTweaking(true)}>
-									Looks wrong?
+									{t.looksWrong}
 								</Button>
 							</p>
 						))}

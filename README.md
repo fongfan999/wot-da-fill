@@ -6,9 +6,11 @@ Made by [Wot Da Fong](https://wotdafong.dev). No accounts, no sign-in.
 
 ## What it does
 
+The whole site comes in English and Vietnamese. A first visit follows the browser's language; the switch in the home page's top bar (or "More" in the editor) changes it, and the choice is remembered on this device. The example invitation follows the same setting. A person's own design and list are never changed. Every string lives in `src/client/lib/i18n.tsx`.
+
 Three steps, shown in the top bar and always one click away: **Design**, **Names**, **Text**, then one button makes every card. The UI follows the Wot Da Fill design system (Wot Da Fong brand: paper, ink, cobalt, system fonts).
 
-- **Design**: drop a JPG, PNG or WebP. A text box for the name is placed in the middle straight away, showing an example name until there is a list. The home page offers an example to try, in English by default or Vietnamese ("Example in English / Tiếng Việt", remembered on this device); the setting changes only the example, never the interface. Replacing the design later keeps the layout (scaled to the new size).
+- **Design**: drop a JPG, PNG or WebP. A text box for the name is placed in the middle straight away, showing an example name until there is a list. Replacing the design later keeps the layout (scaled to the new size).
 - **Names**: paste names (one per line, or cells copied from Excel/Sheets) or drop a CSV / TSV / XLSX / XLS / ODS file into the same box. How the list is split and whether the first row is headings are worked out automatically; the manual choices sit behind "Looks wrong?". A sheet picker appears only when a file has several sheets with names. Handles UTF-8, UTF-16 and Windows-1258 CSVs, normalizes Vietnamese to NFC, and formats unformatted dates as dd/mm/yyyy.
 - **Text**: what each box says, such as `Kính mời {Họ tên}` or `Bàn số {Bàn}`; "Add from your list" inserts a column, and "Card number" inserts `{#}`. Font, size, colour and alignment are on show; thickness, italic, capital letters, letter spacing, line height, top/middle/bottom, shrinking, wrapping and exact position wait behind "More options". Drag on an empty spot to add another box; move, resize (8 handles, Alt = from the center), snap to the center lines, nudge with the arrow keys (Shift = 10 px).
 - **Fonts**: curated invitation picks, search all ~1,700 Google Fonts (fonts without Vietnamese accents are flagged and listed last), or use your own TTF/OTF/WOFF (SVN-/UTM- fonts work).
@@ -73,6 +75,7 @@ After changing bindings in `wrangler.jsonc`, run `pnpm cf-typegen`.
 | `src/client/components/` | Editor (canvas + boxes), the Names and Text panels, font picker, card/share dialogs, shared UI (`ui.tsx`) |
 | `src/client/lib/render.ts` | Text layout and drawing shared by preview and export |
 | `src/client/lib/fit.ts` | Checks every name against its box for the fit warning |
+| `src/client/lib/i18n.tsx` | The site's language and every English and Vietnamese string |
 | `src/client/lib/generate.ts` | Batch pipeline: fonts → render → encode pool → zip |
 | `src/client/lib/encoder.worker.ts`, `pool.ts` | WASM encoders in a worker pool |
 | `src/client/lib/data.ts` | CSV/Excel/paste parsing |

@@ -1,3 +1,4 @@
+import { tr } from "./i18n";
 import type { CustomFont, FontRef } from "../types";
 
 export type FontCategory = "serif" | "sans" | "display" | "script" | "mono";
@@ -70,10 +71,10 @@ export function registerGoogleFont(family: string, weight: number, italic: boole
 			const spec = `${encodeURIComponent(family).replace(/%20/g, "+")}:ital,wght@${italic ? 1 : 0},${weight}`;
 			const url = `https://fonts.googleapis.com/css2?family=${spec}&display=block${text ? `&text=${encodeURIComponent(text)}` : ""}`;
 			const res = await fetch(url);
-			if (!res.ok) throw new Error(`Google Fonts has no ${italic ? "italic " : ""}${weight} style for "${family}".`);
+			if (!res.ok) throw new Error(tr().fontNoStyle(family, weight, italic));
 			const css = await res.text();
 			const faces = parseFontFaces(css, alias);
-			if (!faces.length) throw new Error(`Could not read font "${family}".`);
+			if (!faces.length) throw new Error(tr().fontUnreadable(family));
 			for (const face of faces) document.fonts.add(face);
 		})();
 		faceRequests.set(key, req);
@@ -139,7 +140,7 @@ export async function registerCustomFont(font: CustomFont): Promise<void> {
 	if (customRegistered.has(font.id)) return;
 	const face = new FontFace(font.family, await font.blob.arrayBuffer());
 	await face.load().catch(() => {
-		throw new Error(`"${font.fileName}" isn't a font file the browser can read.`);
+		throw new Error(tr().notAFont(font.fileName));
 	});
 	document.fonts.add(face);
 	customRegistered.add(font.id);

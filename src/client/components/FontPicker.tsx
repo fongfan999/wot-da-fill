@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CURATED_FAMILIES, closestVariant, loadCatalog, previewFamily, type GoogleFont } from "../lib/fonts";
+import { useT } from "../lib/i18n";
 import type { CustomFont, FontRef } from "../types";
 import { Button, Icon, pickFile } from "./ui";
 
@@ -25,6 +26,7 @@ export function FontPicker({
 	onUpload(file: File): Promise<CustomFont | null>;
 	labelId?: string;
 }) {
+	const t = useT();
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [catalog, setCatalog] = useState<GoogleFont[] | null>(null);
@@ -119,9 +121,9 @@ export function FontPicker({
 						autoFocus
 						className="wf-input"
 						type="search"
-						placeholder="Search 1,700+ fonts"
+						placeholder={t.searchFontsPlaceholder}
 						value={query}
-						aria-label="Search fonts"
+						aria-label={t.searchFonts}
 						onChange={(e) => setQuery(e.target.value)}
 						onKeyDown={(e) => {
 							if (e.key === "ArrowDown") {
@@ -138,10 +140,10 @@ export function FontPicker({
 							}
 						}}
 					/>
-					<p className="wf-hint">{query ? `${options.length} found` : "Picked for invitations, all with Vietnamese accents"}</p>
-					<ul className="wf-font-list" role="listbox" ref={listRef} aria-label="Fonts">
-						{!catalog && <li className="wf-table-more">Loading fonts…</li>}
-						{catalog && options.length === 0 && <li className="wf-table-more">No font called “{query}”.</li>}
+					<p className="wf-hint">{query ? t.fontsFound(options.length) : t.curatedFonts}</p>
+					<ul className="wf-font-list" role="listbox" ref={listRef} aria-label={t.fonts}>
+						{!catalog && <li className="wf-table-more">{t.loadingFonts}</li>}
+						{catalog && options.length === 0 && <li className="wf-table-more">{t.noFontCalled(query)}</li>}
 						{options.map((o, i) => (
 							<FontRow
 								key={o.key}
@@ -155,7 +157,7 @@ export function FontPicker({
 						))}
 					</ul>
 					<Button variant="ghost" icon="upload" full onClick={upload}>
-						Use my own font file
+						{t.ownFont}
 					</Button>
 				</div>
 			)}
@@ -178,6 +180,7 @@ function FontRow({
 	onPick(): void;
 	onHover(): void;
 }) {
+	const t = useT();
 	const ref = useRef<HTMLLIElement>(null);
 	const [alias, setAlias] = useState<string | null>(option.source === "custom" ? option.family : null);
 
@@ -209,8 +212,8 @@ function FontRow({
 				{option.family}
 			</span>
 			<span className="wf-font-side">
-				{option.noVietnamese && <span className="wf-font-flag">No Vietnamese</span>}
-				{option.source === "custom" && <span className="wf-meta">Yours</span>}
+				{option.noVietnamese && <span className="wf-font-flag">{t.noVietnamese}</span>}
+				{option.source === "custom" && <span className="wf-meta">{t.yours}</span>}
 				{selected && <Icon name="check" size={16} />}
 			</span>
 		</li>

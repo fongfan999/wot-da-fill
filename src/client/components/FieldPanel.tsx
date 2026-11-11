@@ -1,28 +1,18 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { closestVariant, loadCatalog, type GoogleFont } from "../lib/fonts";
+import { EXAMPLE } from "../lib/example";
+import { getLang, tr, useT } from "../lib/i18n";
 import { placeholdersIn, ROW_NUMBER, unknownPlaceholders } from "../lib/text";
 import type { CustomFont, Field, FontRef } from "../types";
 import { FontPicker } from "./FontPicker";
 import { Button, ColorField, Icon, NumberField, Section, Segmented, Select, Switch, useRemembered } from "./ui";
 
-const WEIGHT_NAMES: Record<number, string> = {
-	100: "Thin",
-	200: "Extra light",
-	300: "Light",
-	400: "Regular",
-	500: "Medium",
-	600: "Semibold",
-	700: "Bold",
-	800: "Extra bold",
-	900: "Black",
-	1000: "Extra black",
-};
 
 /** What a text box is called in tags and lists: its one piece from the list, or its words. */
 export function fieldLabel(f: Field, i: number): string {
 	const t = f.text.trim();
 	const lone = /^\{([^{}]+)\}$/.exec(t);
-	if (lone) return lone[1].trim() === ROW_NUMBER ? "Card number" : lone[1].trim();
+	if (lone) return lone[1].trim() === ROW_NUMBER ? tr().cardNumber : lone[1].trim();
 	if (!t) return `Text ${i + 1}`;
 	return t.length > 22 ? `${t.slice(0, 22)}…` : t;
 }
@@ -52,17 +42,18 @@ export function FieldPanel({
 	onDelete(field: Field): void;
 	onUploadFont(file: File): Promise<CustomFont | null>;
 }) {
+	const t = useT();
 	return (
 		<Section
-			title="Text"
+			title={t.textTitle}
 			aside={
 				<Button size="sm" icon="plus" onClick={onAdd}>
-					Add text
+					{t.addText}
 				</Button>
 			}
 		>
 			{fields.length > 1 && (
-				<ul className="wf-boxlist" aria-label="Text boxes">
+				<ul className="wf-boxlist" aria-label={t.textBoxes}>
 					{fields.map((f, i) => (
 						<li key={f.id}>
 							<button type="button" aria-current={f.id === selected?.id} onClick={() => onSelect(f.id)}>
@@ -73,8 +64,8 @@ export function FieldPanel({
 					))}
 				</ul>
 			)}
-			{!fields.length && <p className="wf-hint">Drag on the design to add a text box, or press Add text.</p>}
-			{fields.length > 0 && !selected && <p className="wf-hint">Pick a text box on the design to change it.</p>}
+			{!fields.length && <p className="wf-hint">{t.noBoxes}</p>}
+			{fields.length > 0 && !selected && <p className="wf-hint">{t.pickBox}</p>}
 			{selected && (
 				<FieldEditor
 					key={selected.id}
@@ -111,6 +102,7 @@ function FieldEditor({
 	onDelete(): void;
 	onUploadFont(file: File): Promise<CustomFont | null>;
 }) {
+	const t = useT();
 	const textRef = useRef<HTMLTextAreaElement>(null);
 	const textId = useId();
 	const fontLabelId = useId();
@@ -144,7 +136,7 @@ function FieldEditor({
 
 	// One button per piece of the list; before there is a list, the pieces this text already uses.
 	const used = [...new Set(placeholdersIn(field.text).filter((p) => p !== ROW_NUMBER))];
-	const pieces = columns.length ? columns : used.length ? used : ["Name"];
+	const pieces = columns.length ? columns : used.length ? used : [EXAMPLE[getLang()].columns[0]];
 	const weights = googleFont
 		? [...new Set(googleFont.variants.filter((v) => v.endsWith("i") === field.font.italic).map((v) => parseInt(v, 10)))]
 		: [400];
@@ -155,7 +147,7 @@ function FieldEditor({
 		<>
 			<div className={`wf-field${unknown.length ? " wf-field-error" : ""}`}>
 				<label className="wf-label" htmlFor={textId}>
-					What it says
+					{t.whatItSays}
 				</label>
 				<textarea
 					id={textId}
@@ -170,12 +162,12 @@ function FieldEditor({
 				/>
 				{unknown.length > 0 && (
 					<p className="wf-hint" id={`${textId}-hint`} role="alert">
-						Your list has no {unknown.map((u) => `“${u}”`).join(" or ")}. Pick one of the buttons below or fix the spelling.
+						{t.unknownColumns(unknown)}
 					</p>
 				)}
 			</div>
-			<div className="wf-fillins" role="group" aria-label="Add from your list">
-				<span className="wf-fillins-label">Add from your list</span>
+			<div className="wf-fillins" role="group" aria-label={t.addFromList}>
+				<span className="wf-fillins-label">{t.addFromList}</span>
 				{pieces.map((c) => (
 					<button key={c} type="button" className="wf-fillin" onClick={() => insert(c)}>
 						<Icon name="plus" size={14} />
@@ -184,31 +176,31 @@ function FieldEditor({
 				))}
 				<button type="button" className="wf-fillin" onClick={() => insert(ROW_NUMBER)}>
 					<Icon name="plus" size={14} />
-					Card number
+					{t.cardNumber}
 				</button>
 			</div>
 
 			<div className="wf-field">
 				<span className="wf-label" id={fontLabelId}>
-					Font
+					{t.font}
 				</span>
 				<FontPicker value={field.font} customFonts={customFonts} onChange={(font) => setFont(font)} onUpload={onUploadFont} labelId={fontLabelId} />
 			</div>
 
 			<div className="wf-row">
 				<div style={{ width: 92, flex: "none" }}>
-					<NumberField label="Size" value={field.fontSize} min={1} max={2000} suffix="px" onChange={(v) => set({ fontSize: v })} />
+					<NumberField label={t.size} value={field.fontSize} min={1} max={2000} suffix="px" onChange={(v) => set({ fontSize: v })} />
 				</div>
-				<ColorField label="Colour" value={field.color} onChange={(color) => set({ color })} />
+				<ColorField label={t.colour} value={field.color} onChange={(color) => set({ color })} />
 				<div className="wf-field">
-					<span className="wf-label">Line up</span>
+					<span className="wf-label">{t.lineUp}</span>
 					<Segmented
-						label="Line up"
+						label={t.lineUp}
 						value={field.align}
 						options={[
-							{ value: "left", icon: "alignLeft", title: "Left" },
-							{ value: "center", icon: "alignCenter", title: "Centre" },
-							{ value: "right", icon: "alignRight", title: "Right" },
+							{ value: "left", icon: "alignLeft", title: t.alignLeft },
+							{ value: "center", icon: "alignCenter", title: t.alignCentre },
+							{ value: "right", icon: "alignRight", title: t.alignRight },
 						]}
 						onChange={(align) => set({ align })}
 					/>
@@ -217,26 +209,26 @@ function FieldEditor({
 
 			<details className="wf-more" open={moreOpen} onToggle={(e) => setMoreOpen(e.currentTarget.open)}>
 				<summary>
-					More options <Icon name="chevronDown" size={16} />
+					{t.moreOptions} <Icon name="chevronDown" size={16} />
 				</summary>
 				<div className="wf-more-body">
 					{field.font.source === "google" && (
 						<div className="wf-row">
 							<div className="wf-grow">
 								<Select
-									label="Thickness"
+									label={t.thickness}
 									value={String(field.font.weight)}
-									options={weights.map((w) => ({ value: String(w), label: WEIGHT_NAMES[w] ?? String(w) }))}
+									options={weights.map((w) => ({ value: String(w), label: t.weights[w] ?? String(w) }))}
 									onChange={(v) => setFont({ weight: Number(v) })}
 								/>
 							</div>
 							{hasItalic && hasUpright && (
 								<Segmented
-									label="Slant"
+									label={t.slant}
 									value={field.font.italic ? "italic" : "normal"}
 									options={[
-										{ value: "normal", label: "Upright" },
-										{ value: "italic", label: <i>Italic</i> },
+										{ value: "normal", label: t.upright },
+										{ value: "italic", label: <i>{t.italic}</i> },
 									]}
 									onChange={(v) => {
 										const italic = v === "italic";
@@ -247,31 +239,31 @@ function FieldEditor({
 						</div>
 					)}
 					<div className="wf-field">
-						<span className="wf-label">Capital letters</span>
+						<span className="wf-label">{t.capitals}</span>
 						<Segmented
-							label="Capital letters"
+							label={t.capitals}
 							value={field.textCase}
 							options={[
-								{ value: "none", label: "As typed" },
-								{ value: "title", label: "Each Word" },
-								{ value: "upper", label: "ALL CAPS" },
+								{ value: "none", label: t.asTyped },
+								{ value: "title", label: t.eachWord },
+								{ value: "upper", label: t.allCaps },
 							]}
 							onChange={(textCase) => set({ textCase })}
 						/>
 					</div>
 					<div className="wf-grid-2">
-						<NumberField label="Letter spacing" value={field.letterSpacing} min={-50} max={200} suffix="%" onChange={(v) => set({ letterSpacing: v })} />
-						<NumberField label="Line height" value={field.lineHeight} min={0.5} max={4} step={0.05} onChange={(v) => set({ lineHeight: v })} />
+						<NumberField label={t.letterSpacing} value={field.letterSpacing} min={-50} max={200} suffix="%" onChange={(v) => set({ letterSpacing: v })} />
+						<NumberField label={t.lineHeight} value={field.lineHeight} min={0.5} max={4} step={0.05} onChange={(v) => set({ lineHeight: v })} />
 					</div>
 					<div className="wf-field">
-						<span className="wf-label">Top, middle or bottom</span>
+						<span className="wf-label">{t.vertical}</span>
 						<Segmented
-							label="Top, middle or bottom"
+							label={t.vertical}
 							value={field.valign}
 							options={[
-								{ value: "top", icon: "vTop", title: "Top" },
-								{ value: "middle", icon: "vMiddle", title: "Middle" },
-								{ value: "bottom", icon: "vBottom", title: "Bottom" },
+								{ value: "top", icon: "vTop", title: t.top },
+								{ value: "middle", icon: "vMiddle", title: t.middle },
+								{ value: "bottom", icon: "vBottom", title: t.bottom },
 							]}
 							onChange={(valign) => set({ valign })}
 						/>
@@ -279,19 +271,19 @@ function FieldEditor({
 					<Switch
 						checked={field.autoFit}
 						onChange={(autoFit) => set({ autoFit })}
-						label="Shrink long names to fit"
-						hint="Long names get smaller instead of spilling out of the box."
+						label={t.shrink}
+						hint={t.shrinkHint}
 					/>
-					<Switch checked={field.wrap} onChange={(wrap) => set({ wrap })} label="Let text run onto more lines" hint="For addresses or long titles." />
+					<Switch checked={field.wrap} onChange={(wrap) => set({ wrap })} label={t.wrap} hint={t.wrapHint} />
 					<div className="wf-field">
-						<span className="wf-label">Position and size</span>
+						<span className="wf-label">{t.position}</span>
 						<div className="wf-grid-2">
 							{(
 								[
-									["x", "Left"],
-									["y", "Top"],
-									["w", "Width"],
-									["h", "Height"],
+									["x", t.posLeft],
+									["y", t.posTop],
+									["w", t.posWidth],
+									["h", t.posHeight],
 								] as const
 							).map(([k, label]) => (
 								<NumberField
@@ -310,17 +302,17 @@ function FieldEditor({
 						style={{ alignSelf: "flex-start", marginLeft: -16 }}
 						onClick={() => set({ box: { ...field.box, x: Math.round((imageWidth - field.box.w) / 2) } })}
 					>
-						Centre on the design
+						{t.centreOnDesign}
 					</Button>
 				</div>
 			</details>
 
 			<div className="wf-actions">
 				<Button variant="ghost" icon="copy" onClick={onDuplicate}>
-					Duplicate
+					{t.duplicate}
 				</Button>
 				<Button variant="danger" icon="trash" onClick={onDelete}>
-					Remove
+					{t.remove}
 				</Button>
 			</div>
 		</>

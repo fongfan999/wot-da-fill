@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { clampBox } from "../lib/fields";
 import { ensureFont } from "../lib/fonts";
+import { useT } from "../lib/i18n";
 import { renderCard } from "../lib/render";
 import type { Box, Field, TemplateImage } from "../types";
 
@@ -37,6 +38,7 @@ export interface EditorProps {
 const SNAP_PX = 6;
 
 export function Editor({ image, fields, texts, selectedId, showGuides, labels, flagged, onSelect, onOpen, onChangeBox, onCreate }: EditorProps) {
+	const t = useT();
 	const stageRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const overlayRef = useRef<HTMLDivElement>(null);
@@ -204,13 +206,13 @@ export function Editor({ image, fields, texts, selectedId, showGuides, labels, f
 	return (
 		<div className="editor" ref={stageRef}>
 			<div className="canvas-wrap" style={{ width: view.w, height: view.h }}>
-				<canvas ref={canvasRef} style={{ width: view.w, height: view.h }} aria-label="Card preview" role="img" />
+				<canvas ref={canvasRef} style={{ width: view.w, height: view.h }} aria-label={t.cardPreview} role="img" />
 				{/* Move/up handlers live here only: captured pointer events bubble up from boxes and handles. */}
 				<div
 					ref={overlayRef}
 					tabIndex={0}
 					role="application"
-					aria-label="Your design. Drag on an empty spot to add a text box; arrow keys move the selected one."
+					aria-label={t.editorLabel}
 					className="overlay"
 					onPointerDown={onPointerDownEmpty}
 					onPointerMove={onPointerMove}
@@ -232,7 +234,7 @@ export function Editor({ image, fields, texts, selectedId, showGuides, labels, f
 							>
 								<span className="wf-box-tag">
 									{labels[i]}
-									{tooLong ? " · too long" : ""}
+									{tooLong ? ` · ${t.tooLongTag}` : ""}
 								</span>
 								{selected &&
 									HANDLES.map((hd) => (

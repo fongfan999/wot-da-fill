@@ -27,7 +27,8 @@ import { addCustomFont, DEFAULT_FONT, ensureFont } from "./lib/fonts";
 import { textsForRow } from "./lib/generate";
 import { loadTemplateImage } from "./lib/image";
 import { getSampleTemplate } from "./lib/showcase";
-import { useExampleLang } from "./lib/example";
+import { EXAMPLE } from "./lib/example";
+import { useLang, useT } from "./lib/i18n";
 import { loadSharedTemplate, shareTemplate } from "./lib/share";
 import { formatBytes, matchColumn, placeholdersIn, ROW_NUMBER, unknownPlaceholders } from "./lib/text";
 import { useUndoable } from "./lib/useUndoable";
@@ -37,14 +38,7 @@ const SHARE_PATH = /^\/t\/([A-Za-z0-9]{16})\/?$/;
 const IMAGES = "image/jpeg,image/png,image/webp";
 
 type Step = "design" | "names" | "text";
-const STEPS: { id: Step; label: string }[] = [
-	{ id: "design", label: "Design" },
-	{ id: "names", label: "Names" },
-	{ id: "text", label: "Text" },
-];
-
-const count = (n: number) => n.toLocaleString("en-US");
-const plural = (n: number, one: string, many: string) => `${count(n)} ${n === 1 ? one : many}`;
+const STEPS: Step[] = ["design", "names", "text"];
 
 export function App() {
 	const [image, setImage] = useState<TemplateImage | null>(null);
@@ -63,14 +57,16 @@ export function App() {
 	const [generating, setGenerating] = useState(false);
 	const [sharing, setSharing] = useState(false);
 	const [tooLong, setTooLong] = useState<TooLong[] | null>(null);
-	const [exampleLang, setExampleLang] = useExampleLang();
+	const [lang, setLang] = useLang();
+	const t = useT();
 	const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
 	const table = useMemo(() => (source ? buildTable(source.grid, source.hasHeader) : null), [source]);
 	const columns = table?.columns ?? [];
 	const rowCount = table?.rows.length ?? 0;
 	const previewIndex = Math.min(previewRow, Math.max(0, rowCount - 1));
-	const texts = useMemo(() => textsForRow(fields, table, previewIndex), [fields, table, previewIndex]);
+	// The example name shown before there is a list follows the language, so it is a dependency here.
+	const texts = useMemo(() => textsForRow(fields, table, previewIndex), [fields, table, previewIndex, lang]);
 	const selected = fields.find((f) => f.id === selectedId) ?? null;
 	const labels = fields.map(fieldLabel);
 
@@ -96,7 +92,7 @@ export function App() {
 		const id = location.pathname.match(SHARE_PATH)?.[1];
 		if (!id) return;
 		let cancelled = false;
-		setBusy("Opening the shared layout…");
+		setBusy(t.openingShared);
 		loadSharedTemplate(id)
 			.then((t) => {
 				if (cancelled) return;
@@ -185,14 +181,15 @@ export function App() {
 			const grid = parseDelimited(paste, delimiter);
 			const hasHeader = source?.kind === "paste" ? source.hasHeader : guessHasHeader(grid, "paste");
 			parsedFrom.current = { text: paste, delimiter };
-			applySource({ kind: "paste", name: "what you pasted", grid, hasHeader });
+			applySource({ kind: "paste", name: "pasted", grid, hasHeader });
 		}, 200);
 		return () => clearTimeout(t);
 		// Only new text or a new way of splitting it means reading it again.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [paste, delimiter]);
 
-	const firstColumnText = `{${columns[0] ?? "Name"}}`;
+	// Before there is a list, a new box holds the example's name column in the site's language.
+	const firstColumnText = columns[0] ? `{${columns[0]}}` : EXAMPLE[lang].nameText;
 	const styleFrom = selected ?? fields.at(-1);
 
 	const makeField = (box: Box, text = firstColumnText) => {
@@ -218,8 +215,8 @@ export function App() {
 	};
 
 	const openImage = async (file: File) => {
-		if (!file.type.startsWith("image/")) return say("That file is not a picture. Use a JPG, PNG or WebP.", "error");
-		setBusy("Opening your design…");
+		if (!file.type.startsWith("image/")) return say(t.notPicture, "error");
+		setBusy(t.openingDesign);
 		try {
 			const next = await loadTemplateImage(file, file.name);
 			if (image && fields.length) {
@@ -245,25 +242,25 @@ export function App() {
 			setImage(next);
 			if (location.pathname !== "/") history.replaceState(null, "", "/");
 		} catch (err) {
-			say(err instanceof Error ? err.message : "Couldn't open that picture.", "error");
+			say(err instanceof Error ? err.message : t.couldntOpenPicture, "error");
 		} finally {
 			setBusy(null);
 		}
 	};
 
 	const trySample = async () => {
-		setBusy("Drawing an example invitation…");
+		setBusy(t.drawingExample);
 		try {
-			const sample = await getSampleTemplate(exampleLang);
+			const sample = await getSampleTemplate(lang);
 			// The drawing is shared with the home page; the boxes are copied so edits never reach it.
 			const sampleFields = sample.fields.map((f) => ({ ...f, box: { ...f.box }, font: { ...f.font } }));
 			setImage(await loadTemplateImage(sample.blob, "example-invitation.png"));
 			resetFields(sampleFields);
 			setSelectedId(sampleFields[0].id);
-			if (!source) applySource(sampleSource(exampleLang));
+			if (!source) applySource(sampleSource(lang));
 			setStep("text");
 		} catch (err) {
-			say(err instanceof Error ? err.message : "Couldn't draw the example.", "error");
+			say(err instanceof Error ? err.message : t.couldntDrawExample, "error");
 		} finally {
 			setBusy(null);
 		}
@@ -294,7 +291,7 @@ export function App() {
 				setSelectedId(f.id);
 				setToast(null);
 			};
-			say("Text box removed.", "info", { label: "Undo", onClick: restore });
+			say(t.boxRemoved, "info", { label: t.undo, onClick: restore });
 		},
 		[changeFields, say],
 	);
@@ -303,10 +300,10 @@ export function App() {
 		try {
 			const font = await addCustomFont(file, customFonts);
 			setCustomFonts((fs) => [...fs, font]);
-			say(`Added your font “${font.family}”.`);
+			say(t.fontAdded(font.family));
 			return font;
 		} catch (err) {
-			say(err instanceof Error ? err.message : "Couldn't read that font.", "error");
+			say(err instanceof Error ? err.message : t.couldntReadFont, "error");
 			return null;
 		}
 	};
@@ -360,10 +357,10 @@ export function App() {
 		setStep("design");
 		history.replaceState(null, "", "/");
 		say(
-			"Everything cleared.",
+			t.cleared,
 			"info",
 			{
-				label: "Undo",
+				label: t.undo,
 				onClick: () => {
 					setImage(snapshot.image);
 					resetFields(snapshot.fields);
@@ -395,62 +392,54 @@ export function App() {
 	};
 	const flagged = new Set(tooLong?.find((r) => r.row === previewIndex)?.fields ?? []);
 
-	const missing = !image ? "Add your design first." : !rowCount ? "Add your names first." : !fields.length ? "Add a text box first." : null;
+	const missing = !image ? t.missingDesign : !rowCount ? t.missingNames : !fields.length ? t.missingBox : null;
 	const stepState = (id: Step): StepState => {
 		if (id === step) return "current";
 		const done = id === "design" ? !!image : id === "names" ? rowCount > 0 : fields.length > 0;
 		return done ? "done" : "todo";
 	};
 
-	const boxWord = fields.length > 1 ? "their boxes" : "the box";
 	const spills = tooLong?.some((r) => r.spill);
 	const shrinks = tooLong?.some((r) => !r.spill);
 	const fitNotice =
 		rowCount > 0 && missingColumns.length ? (
-			<Notice tone="warn" action={step === "text" && selected && unknownPlaceholders(selected.text, columns).length ? undefined : { label: "Show me", onClick: showMissing }}>
-				Your list has no <b>{missingColumns.join(" or ")}</b>, so that part of every card will be blank.
+			<Notice tone="warn" action={step === "text" && selected && unknownPlaceholders(selected.text, columns).length ? undefined : { label: t.showMe, onClick: showMissing }}>
+				{t.missingColumns(missingColumns)}
 			</Notice>
 		) : rowCount > 0 && fields.length > 0 && tooLong ? (
 			tooLong.length ? (
-				<Notice tone="warn" action={{ label: "Show me", onClick: showNextTooLong }}>
-					<b>{plural(tooLong.length, "name is", "names are")} too long</b> for {boxWord}.{" "}
-					{spills && shrinks
-						? "Some come out much smaller than the others, some spill over."
-						: spills
-							? `${tooLong.length === 1 ? "It spills" : "They spill"} over the edge.`
-							: `${tooLong.length === 1 ? "It comes" : "They come"} out much smaller than the others.`}
+				<Notice tone="warn" action={{ label: t.showMe, onClick: showNextTooLong }}>
+					{t.tooLong(tooLong.length, fields.length > 1, !!spills, !!shrinks)}
 				</Notice>
 			) : (
-				<Notice icon="check">
-					All {plural(rowCount, "name fits", "names fit")} in {boxWord}.
-				</Notice>
+				<Notice icon="check">{t.allFit(rowCount, fields.length > 1)}</Notice>
 			)
 		) : null;
 
 	const primary =
 		step === "design" ? (
 			<Button variant="primary" size="lg" full iconRight="right" onClick={() => setStep("names")}>
-				Next: Names
+				{t.nextNames}
 			</Button>
 		) : step === "names" ? (
 			<Button variant="primary" size="lg" full iconRight="right" disabled={!rowCount} onClick={() => setStep("text")}>
-				Next: Text
+				{t.nextText}
 			</Button>
 		) : (
 			<Button variant="primary" size="lg" full disabled={!!missing} onClick={() => setGenerating(true)}>
-				{rowCount ? `Make ${plural(rowCount, "card", "cards")}` : "Make the cards"}
+				{t.makeCards(rowCount)}
 			</Button>
 		);
 
 	const hint = !fields.length ? (
-		"Drag on the design to add a text box."
+		t.hintNoBox
 	) : step === "text" ? (
 		<>
-			<span className="fine-pointer">Drag the box to move it. Drag on an empty spot to add another. Arrow keys nudge it, Shift for 10px.</span>
-			<span className="coarse-pointer">Drag the box to move it. Drag on an empty spot to add another.</span>
+			<span className="fine-pointer">{t.hintTextFine}</span>
+			<span className="coarse-pointer">{t.hintTextCoarse}</span>
 		</>
 	) : (
-		"Drag the box to where the name belongs. Pull its corners to resize it."
+		t.hintPlace
 	);
 
 	const toasts = (
@@ -464,7 +453,7 @@ export function App() {
 	if (!image)
 		return (
 			<>
-				<HomePage lang={exampleLang} onLang={setExampleLang} onFile={openImage} onExample={trySample} />
+				<HomePage onFile={openImage} onExample={trySample} />
 				{toasts}
 			</>
 		);
@@ -474,16 +463,23 @@ export function App() {
 			<header className="wf-topbar">
 				<ProductMark />
 				<Steps
-					steps={STEPS.map((s) => ({ label: s.label, state: stepState(s.id) }))}
-					onSelect={(i) => setStep(STEPS[i].id)}
+					steps={STEPS.map((id) => ({ label: t.steps[id], state: stepState(id) }))}
+					onSelect={(i) => setStep(STEPS[i])}
 				/>
 				<div className="wf-topbar-actions">
 					{image && fields.length > 0 && (
-						<Button variant="ghost" icon="share" onClick={() => setSharing(true)} title="Share this layout">
-							Share
+						<Button variant="ghost" icon="share" onClick={() => setSharing(true)} title={t.shareLayout}>
+							{t.share}
 						</Button>
 					)}
-					{(image || source) && <Menu label="More" items={[{ label: "Start over", icon: "refresh", onClick: startOver }]} />}
+					<Menu
+						label={t.more}
+						items={[
+							// Names the other language in its own words, so anyone can find their way back.
+							{ label: t.langName[lang === "en" ? "vi" : "en"], icon: "globe", onClick: () => setLang(lang === "en" ? "vi" : "en") },
+							{ label: t.startOver, icon: "refresh", onClick: startOver },
+						]}
+					/>
 				</div>
 			</header>
 
@@ -491,31 +487,31 @@ export function App() {
 				<div className="wf-stage">
 					<div className="wf-stage-bar">
 						{rowCount > 0 ? (
-							<div className="wf-switcher" role="group" aria-label="Which name to show">
-								<IconButton icon="left" label="Previous name" disabled={previewIndex <= 0} onClick={() => setPreviewRow(previewIndex - 1)} />
+							<div className="wf-switcher" role="group" aria-label={t.whichName}>
+								<IconButton icon="left" label={t.prevName} disabled={previewIndex <= 0} onClick={() => setPreviewRow(previewIndex - 1)} />
 								<span className="wf-switcher-label" aria-live="polite">
 									<span className="wf-meta">
-										{count(previewIndex + 1)} of {count(rowCount)}
+										{t.nOfM(previewIndex + 1, rowCount)}
 									</span>
-									<span className="wf-switcher-name">{texts.find((t) => t.trim()) || <i className="wf-muted">empty</i>}</span>
+									<span className="wf-switcher-name">{texts.find((x) => x.trim()) || <i className="wf-muted">{t.empty}</i>}</span>
 								</span>
 								<IconButton
 									icon="right"
-									label="Next name"
+									label={t.nextName}
 									disabled={previewIndex >= rowCount - 1}
 									onClick={() => setPreviewRow(previewIndex + 1)}
 								/>
 							</div>
 						) : (
-							<span className="wf-stage-label">Example name</span>
+							<span className="wf-stage-label">{t.exampleName}</span>
 						)}
 						<div className="wf-stage-tools">
-							<IconButton icon="undo" label="Undo" title={`Undo (${MOD}Z)`} disabled={!canUndo} onClick={undo} />
-							<IconButton icon="redo" label="Redo" title={`Redo (${MOD === "⌘" ? "⇧⌘Z" : "Ctrl+Y"})`} disabled={!canRedo} onClick={redo} />
+							<IconButton icon="undo" label={t.undo} title={`${t.undo} (${MOD}Z)`} disabled={!canUndo} onClick={undo} />
+							<IconButton icon="redo" label={t.redo} title={`${t.redo} (${MOD === "⌘" ? "⇧⌘Z" : "Ctrl+Y"})`} disabled={!canRedo} onClick={redo} />
 							<span className="wf-sep" aria-hidden="true" />
 							<IconButton
 								icon={showBoxes ? "eye" : "eyeOff"}
-								label={showBoxes ? "Hide the boxes" : "Show the boxes"}
+								label={showBoxes ? t.hideBoxes : t.showBoxes}
 								pressed={!showBoxes}
 								onClick={() => setShowBoxes((s) => !s)}
 							/>
@@ -537,10 +533,10 @@ export function App() {
 					<p className="wf-stage-hint">{hint}</p>
 				</div>
 
-				<aside className="wf-panel" aria-label={STEPS.find((s) => s.id === step)?.label}>
+				<aside className="wf-panel" aria-label={t.steps[step]}>
 					<div className="wf-panel-body">
 						{step === "design" && (
-							<Section title="Design">
+							<Section title={t.designTitle}>
 								<div className="wf-file">
 									<Icon name="image" size={22} />
 									<span>
@@ -550,11 +546,11 @@ export function App() {
 										</span>
 									</span>
 								</div>
-								<FileDrop accept={IMAGES} onFile={openImage} label="Replace the design" className="wf-drop-compact">
+								<FileDrop accept={IMAGES} onFile={openImage} label={t.replaceDesign} className="wf-drop-compact">
 									<Icon name="upload" size={22} />
 									<span className="wf-drop-text">
-										<span className="wf-drop-title">Use a different picture</span>
-										<span className="wf-drop-hint">Your text boxes stay where they are.</span>
+										<span className="wf-drop-title">{t.useDifferent}</span>
+										<span className="wf-drop-hint">{t.boxesStay}</span>
 									</span>
 								</FileDrop>
 							</Section>
@@ -596,7 +592,7 @@ export function App() {
 						{primary}
 						{step !== "design" && (step === "names" ? !rowCount : !!missing) && (
 							<p className="wf-hint" style={{ textAlign: "center" }}>
-								{step === "names" ? "Add your names first." : missing}
+								{step === "names" ? t.missingNames : missing}
 							</p>
 						)}
 						<MadeBy />

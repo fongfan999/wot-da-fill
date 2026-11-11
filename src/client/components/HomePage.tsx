@@ -1,27 +1,23 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { EXAMPLE, type ExampleLang } from "../lib/example";
+import { EXAMPLE } from "../lib/example";
+import { useLang, useT, type Lang } from "../lib/i18n";
 import { getShowcase, type Showcase } from "../lib/showcase";
-import { Button, FileDrop, Icon, MadeBy, ProductMark, Segmented, type IconName } from "./ui";
+import { Button, FileDrop, Icon, LangSwitch, MadeBy, ProductMark, type IconName } from "./ui";
 
 const IMAGES = "image/jpeg,image/png,image/webp";
+const FACT_ICONS: IconName[] = ["people", "ruler", "font", "download"];
 
 /**
  * The home page (design system HomeScreen): what the product does, how little it takes, and the
  * way in, all in the first view. Anyone without a design sees it; a picture dropped anywhere on
- * the page, the drop zone, or "Try an example" leaves it for the editor.
+ * the page, the drop zone, or "Try an example" leaves it for the editor. The language switch in its
+ * bar changes the whole site, the example invitation included.
  */
-export function HomePage({
-	lang,
-	onLang,
-	onFile,
-	onExample,
-}: {
-	lang: ExampleLang;
-	onLang(lang: ExampleLang): void;
-	onFile(file: File): void;
-	onExample(): void;
-}) {
-	const [pics, setPics] = useState<{ lang: ExampleLang; pics: Showcase } | null>(null);
+export function HomePage({ onFile, onExample }: { onFile(file: File): void; onExample(): void }) {
+	const t = useT();
+	const h = t.home;
+	const [lang] = useLang();
+	const [pics, setPics] = useState<{ lang: Lang; pics: Showcase } | null>(null);
 	const [over, setOver] = useState(false);
 
 	useEffect(() => {
@@ -39,20 +35,6 @@ export function HomePage({
 	const shown = pics?.pics;
 	const names = EXAMPLE[lang].showcase;
 	const card = (i: number) => (shown ? <img className="wf-card-pic" src={shown.cards[i]} alt="" /> : <span className="wf-card-pic" />);
-	const langToggle = (
-		<div className="wf-home-lang">
-			<span>Example in</span>
-			<Segmented
-				label="Example language"
-				value={lang}
-				onChange={onLang}
-				options={[
-					{ value: "en", label: "English" },
-					{ value: "vi", label: <span lang="vi">Tiếng Việt</span> },
-				]}
-			/>
-		</div>
-	);
 	const fan = (withList: boolean, style?: React.CSSProperties) => (
 		<div className="wf-fan" aria-hidden="true" style={style}>
 			{card(2)}
@@ -82,100 +64,88 @@ export function HomePage({
 		>
 			<header className="wf-home-wrap wf-home-bar">
 				<ProductMark />
-				<Button variant="ghost" onClick={onExample}>
-					Try an example
-				</Button>
+				<div className="wf-home-bar-end">
+					<LangSwitch />
+					<Button variant="ghost" onClick={onExample}>
+						{h.tryExample}
+					</Button>
+				</div>
 			</header>
 			<main>
 				<section className="wf-home-wrap wf-home-hero">
 					<div className="wf-home-copy">
 						<h1 className="wf-home-title">
-							One design. A card for <span className="wf-serif">every</span> name.
+							{h.title((word) => (
+								<span className="wf-serif">{word}</span>
+							))}
 						</h1>
-						<p className="wf-home-lead">
-							Add your invitation, certificate or name badge, paste your list, and download a finished card for each person. No typing
-							names in one by one.
-						</p>
-						<FileDrop accept={IMAGES} onFile={onFile} label="Add your design" className="wf-drop-home">
+						<p className="wf-home-lead">{h.lead}</p>
+						<FileDrop accept={IMAGES} onFile={onFile} label={h.addDesign} className="wf-drop-home">
 							<span className="wf-drop-icon">
 								<Icon name="image" size={28} />
 							</span>
 							<span className="wf-drop-text">
-								<span className="wf-drop-title">Drop your design here</span>
-								<span className="wf-drop-hint">JPG, PNG or WebP, with the name left blank.</span>
+								<span className="wf-drop-title">{h.dropTitle}</span>
+								<span className="wf-drop-hint">{h.dropHint}</span>
 							</span>
 							<span className="wf-btn wf-btn-primary wf-btn-lg">
-								<Icon name="upload" size={20} /> Choose a picture
+								<Icon name="upload" size={20} /> {h.choosePicture}
 							</span>
 						</FileDrop>
 						<ul className="wf-home-ticks">
-							{["Free", "No sign-up", "Your list never leaves this device"].map((t) => (
-								<li key={t}>
+							{h.ticks.map((tick) => (
+								<li key={tick}>
 									<Icon name="check" size={16} />
-									{t}
+									{tick}
 								</li>
 							))}
 						</ul>
 					</div>
-					<div className="wf-home-show">
-						{fan(true)}
-						{langToggle}
-					</div>
+					{fan(true)}
 				</section>
 
 				<section className="wf-home-wrap wf-home-section">
-					<h2 className="wf-home-h2">Three steps, about a minute</h2>
+					<h2 className="wf-home-h2">{h.stepsTitle}</h2>
 					<ol className="wf-home-steps">
 						<Step
 							n={1}
-							title="Add your design"
+							title={h.step1}
 							art={
 								<div className="wf-pic-box">
 									{shown ? <img className="wf-card-pic" src={shown.blank} alt="" /> : <span className="wf-card-pic" />}
 									<div className="wf-box" style={{ left: "22%", top: "38%", width: "56%", height: "15%", cursor: "default" }}>
-										<span className="wf-box-tag">Name goes here</span>
+										<span className="wf-box-tag">{h.nameGoesHere}</span>
 									</div>
 								</div>
 							}
 						>
-							Any picture of your card with the name left blank. We put a name on it straight away so you can drag it into place.
+							{h.step1Text}
 						</Step>
-						<Step n={2} title="Add your names" art={<NameList names={names} lang={lang} />}>
-							Paste them, or drop an Excel or CSV file. One person per line; extra columns like table numbers work too.
+						<Step n={2} title={h.step2} art={<NameList names={names} lang={lang} />}>
+							{h.step2Text}
 						</Step>
-						<Step n={3} title="Download every card" art={fan(false)}>
-							Pick a font and colour, then get one picture per person in a single zip, each file named after its guest.
+						<Step n={3} title={h.step3} art={fan(false)}>
+							{h.step3Text}
 						</Step>
 					</ol>
 				</section>
 
 				<section className="wf-home-wrap wf-home-section">
-					<h2 className="wf-home-h2">Made to be trusted with a guest list</h2>
+					<h2 className="wf-home-h2">{h.trustTitle}</h2>
 					<dl className="wf-home-facts">
-						<Fact icon="people" title="Your list stays with you">
-							The cards are made in your browser. Names are never uploaded anywhere.
-						</Fact>
-						<Fact icon="ruler" title="Long names fit">
-							Long names shrink to fit, and you are told which ones need a look before you download.
-						</Fact>
-						<Fact icon="font" title="Vietnamese looks right">
-							Accents are drawn properly, and fonts that cannot draw them are marked.
-						</Fact>
-						<Fact icon="download" title="Ready to send">
-							Cards are kept small without losing quality, so they are quick to share.
-						</Fact>
+						{h.facts.map(([title, text], k) => (
+							<Fact key={k} icon={FACT_ICONS[k]} title={title}>
+								{text}
+							</Fact>
+						))}
 					</dl>
 				</section>
 
 				<section className="wf-home-wrap wf-home-section wf-home-end">
-					<h2 className="wf-home-h2">No design to hand?</h2>
-					<p>
-						Try it with our sample wedding invitation and a few names. Good for invitations, certificates, name badges, table cards and
-						thank-you notes.
-					</p>
-					{langToggle}
+					<h2 className="wf-home-h2">{h.endTitle}</h2>
+					<p>{h.endText}</p>
 					<Button size="lg" onClick={onExample}>
-						Try an example
+						{h.tryExample}
 					</Button>
 				</section>
 			</main>
@@ -186,7 +156,7 @@ export function HomePage({
 	);
 }
 
-function NameList({ names, lang }: { names: readonly string[]; lang: ExampleLang }) {
+function NameList({ names, lang }: { names: readonly string[]; lang: Lang }) {
 	return (
 		<ol className="wf-namelist" lang={lang}>
 			{names.map((n, i) => (

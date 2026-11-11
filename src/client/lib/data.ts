@@ -167,7 +167,7 @@ export function sampleSource(lang: ExampleLang = getExampleLang()): DataSource {
 	const ex = EXAMPLE[lang];
 	return {
 		kind: "sample",
-		name: ex.listName,
+		name: "sample",
 		grid: [[...ex.columns], ...ex.guests.map((n, i) => [n, String(Math.floor(i / 2) + 1)])],
 		hasHeader: true,
 	};

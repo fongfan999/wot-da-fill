@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useT } from "../lib/i18n";
 import { Button, Dialog } from "./ui";
 
 type State = { kind: "idle" } | { kind: "busy" } | { kind: "done"; url: string; copied: boolean } | { kind: "error"; message: string };
 
 export function ShareDialog({ onShare, onClose }: { onShare(): Promise<string>; onClose(): void }) {
+	const t = useT();
 	const [state, setState] = useState<State>({ kind: "idle" });
 
 	const copy = async (url: string) => {
@@ -22,23 +24,23 @@ export function ShareDialog({ onShare, onClose }: { onShare(): Promise<string>; 
 		try {
 			await copy(await onShare());
 		} catch (err) {
-			setState({ kind: "error", message: err instanceof Error ? err.message : "Sharing didn't work. Try again in a moment." });
+			setState({ kind: "error", message: err instanceof Error ? err.message : t.shareFailed });
 		}
 	};
 
 	return (
-		<Dialog title="Share this layout" onClose={onClose}>
-			<p>Anyone with the link gets your design, where the text goes and any fonts you added, then adds their own names.</p>
-			<p className="wf-small wf-muted">Your list of names is never shared. It stays on this device.</p>
+		<Dialog title={t.shareLayout} onClose={onClose}>
+			<p>{t.shareBody}</p>
+			<p className="wf-small wf-muted">{t.shareNote}</p>
 			{state.kind === "done" && (
 				<div className="wf-share-link">
-					<input className="wf-input" readOnly value={state.url} onFocus={(e) => e.target.select()} aria-label="Link to this layout" />
+					<input className="wf-input" readOnly value={state.url} onFocus={(e) => e.target.select()} aria-label={t.shareLinkLabel} />
 				</div>
 			)}
 			{state.kind === "error" && <p className="wf-small" style={{ color: "var(--error)" }} role="alert">{state.message}</p>}
 			<div className="wf-actions">
 				<Button variant="primary" icon={state.kind === "done" && state.copied ? "check" : "copy"} onClick={share} disabled={state.kind === "busy"}>
-					{state.kind === "busy" ? "Making the link…" : state.kind === "done" && state.copied ? "Link copied" : "Copy link"}
+					{state.kind === "busy" ? t.makingLink : state.kind === "done" && state.copied ? t.linkCopied : t.copyLink}
 				</Button>
 			</div>
 		</Dialog>

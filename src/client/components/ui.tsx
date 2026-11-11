@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useLang, useT, type Lang } from "../lib/i18n";
 import { LOGO } from "../lib/logo";
 
 /** One icon set: 24px grid, 1.8 stroke, round caps and joins, drawn in the text colour. */
@@ -33,6 +34,7 @@ const PATHS = {
 	more: "M5 12h.01M12 12h.01M19 12h.01",
 	alert: "M12 9v4M12 17h.01M10.3 4.3 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z",
 	info: "M12 11v6M12 7.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
+	globe: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.6 9h16.8M3.6 15h16.8M12 3c2.4 2.6 3.6 5.6 3.6 9s-1.2 6.4-3.6 9c-2.4-2.6-3.6-5.6-3.6-9S9.6 5.6 12 3z",
 	font: "M4 20 10 4h1l6 16M6.5 14h8M17 20h4",
 	ruler: "M4 17 17 4l3 3L7 20zM8 13l2 2M11 10l2 2M14 7l2 2",
 	people: "M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM21 19v-1a4 4 0 0 0-3-3.9M15.5 3.2a3.5 3.5 0 0 1 0 6.6",
@@ -99,8 +101,9 @@ export function ProductMark({ size = 26 }: { size?: number }) {
 
 /** The maker credit, the only place the Wot Da Fong mark appears. */
 export function MadeBy() {
+	const t = useT();
 	return (
-		<a className="wf-madeby" href="https://wotdafong.dev" target="_blank" rel="noreferrer" aria-label="Made by Wot Da Fong">
+		<a className="wf-madeby" href="https://wotdafong.dev" target="_blank" rel="noreferrer" aria-label={t.madeBy}>
 			<picture>
 				<source srcSet="/wotdafong-paper.svg" media="(prefers-color-scheme: dark)" />
 				<img src="/wotdafong-ink.svg" alt="" width="16" height="16" />
@@ -322,6 +325,7 @@ export function Select({
 
 export function ColorField({ label, value, onChange }: { label: string; value: string; onChange(v: string): void }) {
 	const id = useId();
+	const t = useT();
 	const [draft, setDraft] = useState<string | null>(null);
 	return (
 		<div className="wf-field">
@@ -335,7 +339,7 @@ export function ColorField({ label, value, onChange }: { label: string; value: s
 					value={draft ?? value}
 					maxLength={7}
 					spellCheck={false}
-					aria-label="Colour code"
+					aria-label={t.colourCode}
 					onChange={(e) => {
 						setDraft(e.target.value);
 						if (/^#[0-9a-f]{6}$/i.test(e.target.value)) onChange(e.target.value.toLowerCase());
@@ -424,8 +428,9 @@ export function Steps({
 	steps: { label: string; state: StepState; disabled?: boolean }[];
 	onSelect(index: number): void;
 }) {
+	const t = useT();
 	return (
-		<ol className="wf-steps" aria-label="Steps">
+		<ol className="wf-steps" aria-label={t.stepsLabel}>
 			{steps.map((s, i) => (
 				<li key={s.label}>
 					{i > 0 && <span className="wf-step-sep" aria-hidden="true" />}
@@ -436,7 +441,7 @@ export function Steps({
 						disabled={s.disabled}
 						onClick={() => onSelect(i)}
 					>
-						<span className="wf-step-dot">{s.state === "done" ? <Icon name="check" size={14} label="Done" /> : i + 1}</span>
+						<span className="wf-step-dot">{s.state === "done" ? <Icon name="check" size={14} label={t.done} /> : i + 1}</span>
 						<span className="wf-step-label">{s.label}</span>
 					</button>
 				</li>
@@ -478,6 +483,7 @@ export interface ToastMessage {
 }
 
 export function Toast({ toast, onDismiss }: { toast: ToastMessage; onDismiss?(): void }) {
+	const t = useT();
 	return (
 		<div className={cx("wf-toast", toast.kind !== "info" && `wf-toast-${toast.kind}`)} role={toast.kind === "error" ? "alert" : "status"}>
 			{toast.kind === "busy" && <span className="wf-spinner" aria-hidden="true" />}
@@ -488,7 +494,7 @@ export function Toast({ toast, onDismiss }: { toast: ToastMessage; onDismiss?():
 					{toast.action.label}
 				</button>
 			)}
-			{onDismiss && <IconButton icon="x" label="Dismiss" onClick={onDismiss} />}
+			{onDismiss && <IconButton icon="x" label={t.dismiss} onClick={onDismiss} />}
 		</div>
 	);
 }
@@ -512,7 +518,7 @@ export function Progress({ value, label, detail }: { value: number; label: strin
 export function Dialog({
 	title,
 	onClose,
-	closeLabel = "Close",
+	closeLabel,
 	width,
 	children,
 }: {
@@ -522,6 +528,7 @@ export function Dialog({
 	width?: number;
 	children: ReactNode;
 }) {
+	const t = useT();
 	const ref = useRef<HTMLDialogElement>(null);
 	const id = useId();
 	useEffect(() => {
@@ -544,7 +551,7 @@ export function Dialog({
 				<h2 className="wf-dialog-title" id={id}>
 					{title}
 				</h2>
-				<IconButton icon="x" label={closeLabel} onClick={onClose} />
+				<IconButton icon="x" label={closeLabel ?? t.close} onClick={onClose} />
 			</header>
 			<div className="wf-dialog-body">{children}</div>
 		</dialog>
@@ -611,4 +618,32 @@ export function useRemembered(key: string, initial: boolean): [boolean, (v: bool
 		}
 	};
 	return [value, set];
+}
+
+/**
+ * English or Vietnamese for the whole site. Each name is written in its own language; under
+ * 480px the short forms (EN, VI) show so it fits a phone's top bar.
+ */
+export function LangSwitch() {
+	const t = useT();
+	const [lang, setLang] = useLang();
+	return (
+		<Segmented<Lang>
+			label={t.language}
+			value={lang}
+			onChange={setLang}
+			options={(["en", "vi"] as const).map((l) => ({
+				value: l,
+				title: t.langName[l],
+				label: (
+					<span lang={l}>
+						<span className="wf-lang-long">{t.langName[l]}</span>
+						<span className="wf-lang-short" aria-hidden="true">
+							{t.langShort[l]}
+						</span>
+					</span>
+				),
+			}))}
+		/>
+	);
 }

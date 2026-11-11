@@ -650,9 +650,6 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 .wf-home-foot { display: flex; justify-content: center; padding: var(--space-6); border-top: 1px solid var(--line); }
 
 /* The picture of what the product does: a list of names beside the cards it becomes. */
-.wf-home-show { display: flex; flex-direction: column; align-items: center; gap: var(--space-5); min-width: 0; }
-.wf-home-lang { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-3); font-size: 13px; color: var(--muted); }
-.wf-home-end .wf-home-lang { margin-top: var(--space-1); }
 .wf-fan { position: relative; width: 100%; aspect-ratio: 1 / 0.84; }
 .wf-fan .wf-card-pic { position: absolute; width: 56%; }
 .wf-fan .wf-card-pic:nth-child(1) { left: 3%; top: 1%; rotate: -5deg; }
@@ -689,3 +686,13 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 .wf-pic-box { position: relative; width: 74%; }
 .wf-pic-box .wf-card-pic { width: 100%; }
 .wf-home.wf-drop-over { outline: 3px dashed var(--accent); outline-offset: -12px; }
+
+/* Language switch: each language named in its own words; short forms on small phones. */
+.wf-home-bar-end { display: flex; align-items: center; gap: var(--space-2); }
+.wf-lang-short { display: none; }
+@media (max-width: 480px) {
+	.wf-lang-long { display: none; }
+	.wf-lang-short { display: inline; }
+	.wf-home-bar-end { gap: var(--space-1); }
+	.wf-home-bar-end .wf-btn-ghost { padding: 0 var(--space-2); }
+}
