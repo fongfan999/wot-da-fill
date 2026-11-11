@@ -126,7 +126,7 @@ export function DataPanel({
 						id={pasteId}
 						className="wf-input"
 						rows={source ? 4 : 7}
-						placeholder={EXAMPLE[lang].showcase.slice(0, 3).join("\n")}
+						placeholder={EXAMPLE[lang].names.slice(0, 3).join("\n")}
 						value={paste}
 						onChange={(e) => onPaste(e.target.value)}
 					/>

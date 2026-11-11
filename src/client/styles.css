@@ -650,19 +650,62 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 .wf-home-foot { display: flex; justify-content: center; padding: var(--space-6); border-top: 1px solid var(--line); }
 
 /* The picture of what the product does: a list of names beside the cards it becomes. */
-.wf-fan { position: relative; width: 100%; aspect-ratio: 1 / 0.84; }
-.wf-fan .wf-card-pic { position: absolute; width: 56%; }
-.wf-fan .wf-card-pic:nth-child(1) { left: 3%; top: 1%; rotate: -5deg; }
-.wf-fan .wf-card-pic:nth-child(2) { left: 21%; top: 25%; rotate: 2deg; }
-.wf-fan .wf-card-pic:nth-child(3) { left: 41%; top: 50%; rotate: -2deg; }
+/* The example designs, as the app draws them: the blank picture with a name layer over it. The
+   pictures carry their own colours; only the shadow and the space they hold come from here. */
+.wf-expic { position: relative; flex: none; container-type: inline-size; aspect-ratio: 10 / 7; background: var(--paper-raised); box-shadow: var(--shadow-card); }
+.wf-expic[data-kind="badge"] { aspect-ratio: 3 / 4; border-radius: 5cqw; }
+.wf-expic-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; user-select: none; }
+.wf-expic:has(.wf-expic-img) { background: none; }
+@keyframes wf-ex-in { from { opacity: 0; translate: 0 1.4cqw; filter: blur(0.5cqw); } }
+.wf-ex-in { animation: wf-ex-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* The home page's moving picture: an example with the name changing, beside the list it comes from. */
+.wf-exdemo { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; min-width: 0; }
+.wf-exdemo-stage {
+	position: relative; display: grid; place-items: center; aspect-ratio: 1 / 0.8; border-radius: var(--radius-xl);
+	background: radial-gradient(var(--line-strong) 1.1px, transparent 1.5px) 0 0 / 18px 18px, var(--stage);
+}
+.wf-exdemo-card { position: relative; z-index: 0; width: 78%; margin-top: -15%; }
+.wf-exdemo-card[data-kind="badge"] { width: 42%; margin: 0 0 0 30%; }
+/* Two sheets behind the card: there are more cards where this one came from. */
+.wf-exdemo-card::before, .wf-exdemo-card::after {
+	content: ""; position: absolute; inset: 0; z-index: -1; border: 1px solid var(--line-strong); background: var(--paper-raised);
+	rotate: -2.4deg; translate: -1.4% 1.6%;
+}
+.wf-exdemo-card::after { rotate: 2deg; translate: 1.6% 1%; }
+.wf-exdemo-card[data-kind="badge"]::before, .wf-exdemo-card[data-kind="badge"]::after { border-radius: 5%; }
+.wf-exdemo .wf-namelist { position: absolute; left: 3%; bottom: 4%; z-index: 1; width: 41%; rotate: -2.5deg; }
+.wf-exdemo .wf-namelist li { cursor: pointer; }
+.wf-exdemo-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+
 .wf-namelist {
-	width: 100%; max-width: 250px; margin: 0; padding: var(--space-2) var(--space-4); list-style: none;
+	width: 100%; max-width: 270px; margin: 0; padding: var(--space-2); list-style: none;
 	border: 1px solid var(--line-strong); border-radius: var(--radius-lg);
 	background: var(--paper-raised); box-shadow: var(--shadow-md); font-size: 14px; text-align: left;
 }
-.wf-namelist li { display: flex; align-items: baseline; gap: var(--space-3); padding: 6px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.wf-namelist li + li { border-top: 1px solid var(--line); }
-.wf-fan .wf-namelist { position: absolute; left: 0; bottom: 0; width: 40%; rotate: -3deg; }
+.wf-namelist li { display: flex; align-items: baseline; gap: var(--space-3); padding: 6px var(--space-2); border-radius: var(--radius-sm); white-space: nowrap; transition: background-color 200ms ease; }
+.wf-namelist-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.wf-namelist-extra { font-size: 12px; color: var(--muted); }
+.wf-namelist li[aria-current="true"] { background: var(--accent-soft); font-weight: 600; }
+
+/* Three finished cards of different kinds, for the last step's picture. */
+.wf-stack { position: relative; width: 88%; aspect-ratio: 1 / 0.74; }
+.wf-stack .wf-expic { position: absolute; }
+.wf-stack .wf-expic[data-kind="certificate"] { left: 0; top: 2%; rotate: -5deg; }
+.wf-stack .wf-expic[data-kind="invitation"] { left: 20%; top: 30%; rotate: 3deg; }
+.wf-stack .wf-expic[data-kind="badge"] { right: 1%; top: 6%; rotate: 7deg; }
+
+/* The examples to start from, at the end of the home page. */
+.wf-home-picks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); width: 100%; margin: var(--space-4) 0 0; padding: 0; list-style: none; }
+.wf-pick { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; padding: 0; border: 0; border-radius: var(--radius-xl); background: none; color: inherit; text-align: left; cursor: pointer; }
+.wf-pick-art {
+	display: grid; place-items: center; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--radius-xl);
+	background: radial-gradient(var(--line-strong) 1.1px, transparent 1.5px) 0 0 / 18px 18px, var(--stage);
+}
+.wf-pick-art .wf-expic { transition: translate 220ms ease, rotate 220ms ease; }
+.wf-pick:hover .wf-pick-art .wf-expic { translate: 0 -1.5%; rotate: -1.5deg; }
+.wf-pick-label { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); padding: 0 var(--space-1); font-size: 16px; font-weight: 600; }
+.wf-pick-label span { font-size: 14px; color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
 
 @media (max-width: 860px) {
 	.wf-home-hero { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); padding-top: var(--space-6); padding-bottom: var(--space-12); }
@@ -672,19 +715,15 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 	.wf-home-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
 	.wf-home-section { padding-top: var(--space-12); padding-bottom: var(--space-12); }
 	.wf-drop-home .wf-btn { width: 100%; }
-	.wf-fan .wf-namelist { width: 56%; padding: var(--space-1) var(--space-3); font-size: 13px; }
-	.wf-fan .wf-namelist li { gap: var(--space-2); padding: 5px 0; }
+	/* On a phone the list is wider and set smaller, so whole names show. */
+	.wf-exdemo .wf-namelist { width: 56%; padding: var(--space-1); font-size: 13px; }
+	.wf-exdemo .wf-namelist li { gap: var(--space-2); padding: 5px var(--space-2); }
+	.wf-home-picks { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 480px) {
 	.wf-home-facts { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* A finished card: a real render of the example invitation. */
-.wf-card-pic { display: block; aspect-ratio: 10 / 7; background: var(--paper-raised); box-shadow: var(--shadow-card); }
-.wf-home-art .wf-card-pic { width: 74%; }
-.wf-home-art .wf-fan { width: 78%; }
-.wf-pic-box { position: relative; width: 74%; }
-.wf-pic-box .wf-card-pic { width: 100%; }
 .wf-home.wf-drop-over { outline: 3px dashed var(--accent); outline-offset: -12px; }
 
 /* Language switch: two flags. Each segment fits its flag; the ring keeps a light flag visible on paper. */

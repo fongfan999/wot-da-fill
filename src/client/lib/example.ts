@@ -1,67 +1,101 @@
 import { getLang, type Lang } from "./i18n";
 
-/** The example invitation follows the site's language. */
+/** The examples follow the site's language. */
 export type ExampleLang = Lang;
 export const getExampleLang = getLang;
 
-/** Everything that differs between the two examples. */
+/** The three examples people can start from (design system ExampleCard). */
+export type ExampleKind = "invitation" | "certificate" | "badge";
+export const EXAMPLE_KINDS: ExampleKind[] = ["invitation", "certificate", "badge"];
+
+/** Each example's size in pixels, as drawn and as downloaded. */
+export const EXAMPLE_SIZE: Record<ExampleKind, { w: number; h: number }> = {
+	invitation: { w: 2000, h: 1400 },
+	certificate: { w: 2000, h: 1400 },
+	badge: { w: 1200, h: 1600 },
+};
+
+/** Everything that differs between the English and Vietnamese examples. */
 export const EXAMPLE = {
 	en: {
 		/** Shown in a placed box before any list is added. */
 		name: "Emma Thompson",
-		columns: ["Name", "Table"],
-		nameText: "{Name}",
+		nameColumn: "Name",
+		tableColumn: "Table",
+		companyColumn: "Company",
 		tableText: "Table {Table}",
-		guests: [
-			"Emma Thompson",
-			"James Carter",
-			"Sophia Nguyen",
-			"Benjamin Okafor",
-			"Alexandra Montgomery-Whitfield",
-			"Oliver Bennett",
-			"Charlotte Davies",
-			"Noah Patel",
-			"Grace Kim",
-			"Henry Walsh",
-			"Ava Rodriguez",
-			"Liam O'Brien",
-		],
-		/** The home page's list and cards, in the design system's order. */
-		showcase: ["Emma Thompson", "James Carter", "Sophia Nguyen", "Benjamin Okafor"],
-		card: {
-			kicker: "INVITATION",
-			invite: "We warmly invite",
-			occasion: "to celebrate our wedding",
-			couple: "Olivia & Daniel",
-			when: "6 PM · SATURDAY · 20 DECEMBER 2026 · RIVERSIDE CONVENTION CENTRE",
+		names: ["Emma Thompson", "James Carter", "Sophia Nguyen", "Benjamin Okafor"],
+		tables: ["1", "1", "2", "2"],
+		companies: ["Northwind", "Lumen Labs", "Kite & Co", "Fieldnote"],
+		file: { invitation: "example-invitation.png", certificate: "example-certificate.png", badge: "example-name-badge.png" },
+		invitation: {
+			kicker: "TOGETHER WITH THEIR FAMILIES",
+			couple: ["Olivia", "Daniel"],
+			invite: "warmly invite",
+			occasion: "to celebrate their wedding",
+			day: "SATURDAY",
+			date: "20.12.2026",
+			time: "6:00 PM",
+			venue: "RIVERSIDE HALL · HO CHI MINH CITY",
 		},
+		certificate: {
+			org: "NORTH STUDIO ACADEMY",
+			title: "Certificate of Completion",
+			lead: "This certifies that",
+			after: "has completed the course",
+			course: "Foundations of Product Design",
+			meta: "12 hours · Autumn 2026",
+			sign: "COURSE DIRECTOR",
+			dateLabel: "DATE",
+			date: "20 Dec 2026",
+		},
+		badge: { event: ["PRODUCT", "NIGHT"], sub: "HO CHI MINH CITY · 2026", band: "ATTENDEE" },
 	},
 	vi: {
 		name: "Nguyễn Văn An",
-		columns: ["Họ tên", "Bàn"],
-		nameText: "{Họ tên}",
-		tableText: "Bàn số {Bàn}",
-		guests: [
-			"Nguyễn Văn An",
-			"Trần Thị Bích Ngọc",
-			"Lê Hoàng Phúc",
-			"Phạm Minh Châu",
-			"Tôn Nữ Hoàng Thị Phương Uyên",
-			"Võ Đức Thắng",
-			"Đặng Khánh Linh",
-			"Bùi Quốc Huy",
-			"Huỳnh Ngọc Ánh",
-			"Đỗ Thanh Tùng",
-			"Ngô Gia Hân",
-			"Dương Trọng Nghĩa",
-		],
-		showcase: ["Nguyễn Văn An", "Trần Thị Bích Ngọc", "Lê Hoàng Minh Châu", "Phạm Quốc Bảo"],
-		card: {
-			kicker: "THIỆP MỜI",
-			invite: "Trân trọng kính mời",
-			occasion: "đến dự tiệc mừng lễ thành hôn của chúng tôi",
-			couple: "Minh Quân & Thảo Vy",
-			when: "VÀO LÚC 18:00 · THỨ BẢY 20.12.2026 · TRUNG TÂM HỘI NGHỊ RIVERSIDE",
+		nameColumn: "Họ tên",
+		tableColumn: "Bàn",
+		companyColumn: "Công ty",
+		tableText: "Bàn {Bàn}",
+		names: ["Nguyễn Văn An", "Trần Thị Bích Ngọc", "Lê Hoàng Minh Châu", "Phạm Quốc Bảo"],
+		tables: ["1", "1", "2", "2"],
+		companies: ["Sao Mai", "Lumen Labs", "Xưởng Gỗ Nhỏ", "Fieldnote"],
+		file: { invitation: "thiep-moi-mau.png", certificate: "chung-nhan-mau.png", badge: "the-ten-mau.png" },
+		invitation: {
+			kicker: "CÙNG GIA ĐÌNH HAI BÊN",
+			couple: ["Minh Quân", "Thảo Vy"],
+			invite: "trân trọng kính mời",
+			occasion: "đến dự lễ thành hôn",
+			day: "THỨ BẢY",
+			date: "20.12.2026",
+			time: "18:00",
+			venue: "TRUNG TÂM HỘI NGHỊ RIVERSIDE",
 		},
+		certificate: {
+			org: "HỌC VIỆN NORTH STUDIO",
+			title: "Chứng nhận hoàn thành",
+			lead: "Chứng nhận",
+			after: "đã hoàn thành khoá học",
+			course: "Nền tảng Thiết kế Sản phẩm",
+			meta: "12 giờ · Mùa thu 2026",
+			sign: "GIÁM ĐỐC KHOÁ HỌC",
+			dateLabel: "NGÀY",
+			date: "20.12.2026",
+		},
+		badge: { event: ["PRODUCT", "NIGHT"], sub: "TP. HỒ CHÍ MINH · 2026", band: "KHÁCH MỜI" },
 	},
 } as const;
+
+/** The second piece of text each example carries beside the name (none on the certificate). */
+export function exampleExtra(lang: ExampleLang, kind: ExampleKind): readonly string[] | null {
+	const ex = EXAMPLE[lang];
+	return kind === "invitation" ? ex.tables : kind === "badge" ? ex.companies : null;
+}
+
+/** The sample list that comes with an example: its headings, then one row per name. */
+export function exampleGrid(lang: ExampleLang, kind: ExampleKind): string[][] {
+	const ex = EXAMPLE[lang];
+	const extra = exampleExtra(lang, kind);
+	const head = kind === "invitation" ? [ex.nameColumn, ex.tableColumn] : kind === "badge" ? [ex.nameColumn, ex.companyColumn] : [ex.nameColumn];
+	return [head, ...ex.names.map((n, i) => (extra ? [n, extra[i]] : [n]))];
+}

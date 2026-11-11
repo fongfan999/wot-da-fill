@@ -120,8 +120,8 @@ const en = {
 	notPicture: "That file is not a picture. Use a JPG, PNG or WebP.",
 	openingDesign: "Opening your design…",
 	couldntOpenPicture: "Couldn't open that picture.",
-	drawingExample: "Drawing an example invitation…",
-	couldntDrawExample: "Couldn't draw the example.",
+	drawingExample: "Getting the example ready…",
+	couldntDrawExample: "Couldn't open the example.",
 	boxRemoved: "Text box removed.",
 	fontAdded: (family: string) => `Added your font “${family}”.`,
 	couldntReadFont: "Couldn't read that font.",
@@ -295,6 +295,7 @@ const en = {
 	statTook: "Took",
 	eachCard: (size: string, saved: number) => `about ${size}${saved > 0 ? `, ${saved}% smaller than your design` : ""}`,
 	manifestNote: "The zip also has _manifest.csv, which says which file belongs to which name.",
+	zipName: (base: string, n: number) => `${base}-${n}-cards.zip`,
 
 	// Sharing
 	shareFailed: "Sharing didn't work. Try again in a moment.",
@@ -342,7 +343,11 @@ const en = {
 			["Ready to send", "Cards are kept small without losing quality, so they are quick to share."],
 		] as [string, string][],
 		endTitle: "No design to hand?",
-		endText: "Try it with our sample wedding invitation and a few names. Good for invitations, certificates, name badges, table cards and thank-you notes.",
+		endText: "Start from one of ours and swap in your own later. Each comes with a few names so you can see the whole thing work.",
+		kinds: { invitation: "Invitation", certificate: "Certificate", badge: "Name badge" } as Record<"invitation" | "certificate" | "badge", string>,
+		chooseExample: "Which example to show",
+		pictureLabel: "An example design filled in with each name from a list, one after another",
+		tryIt: "Try it",
 	},
 };
 
@@ -383,8 +388,8 @@ const vi: Strings = {
 	notPicture: "Tệp này không phải là ảnh. Hãy dùng ảnh JPG, PNG hoặc WebP.",
 	openingDesign: "Đang mở thiết kế của bạn…",
 	couldntOpenPicture: "Không mở được ảnh này.",
-	drawingExample: "Đang vẽ thiệp mẫu…",
-	couldntDrawExample: "Không vẽ được thiệp mẫu.",
+	drawingExample: "Đang chuẩn bị mẫu…",
+	couldntDrawExample: "Không mở được mẫu.",
 	boxRemoved: "Đã xoá ô chữ.",
 	fontAdded: (family) => `Đã thêm phông chữ “${family}”.`,
 	couldntReadFont: "Không đọc được phông chữ này.",
@@ -553,6 +558,7 @@ const vi: Strings = {
 	statTook: "Thời gian",
 	eachCard: (size, saved) => `khoảng ${size}${saved > 0 ? `, nhỏ hơn thiết kế ${saved}%` : ""}`,
 	manifestNote: "Tệp zip có kèm _manifest.csv, cho biết tệp nào ứng với tên nào.",
+	zipName: (base, n) => `${base}-${n}-thiep.zip`,
 
 	shareFailed: "Chưa chia sẻ được. Hãy thử lại sau giây lát.",
 	shareBody: "Ai có đường dẫn sẽ nhận được thiết kế, vị trí các ô chữ và phông chữ bạn đã thêm, rồi tự thêm danh sách tên của họ.",
@@ -597,7 +603,11 @@ const vi: Strings = {
 			["Sẵn sàng gửi đi", "Thiệp được nén nhẹ mà không giảm chất lượng, gửi đi nhanh chóng."],
 		],
 		endTitle: "Chưa có thiết kế?",
-		endText: "Dùng thử với thiệp cưới mẫu và vài cái tên. Hợp với thiệp mời, giấy chứng nhận, thẻ tên, bảng số bàn và thiệp cảm ơn.",
+		endText: "Bắt đầu từ một mẫu của chúng tôi rồi đổi sang thiết kế của bạn sau. Mỗi mẫu có sẵn vài cái tên để bạn thấy mọi thứ chạy ra sao.",
+		kinds: { invitation: "Thiệp mời", certificate: "Giấy chứng nhận", badge: "Thẻ tên" },
+		chooseExample: "Chọn mẫu để xem",
+		pictureLabel: "Một thiết kế mẫu được điền lần lượt từng tên trong danh sách",
+		tryIt: "Dùng thử",
 	},
 };
 

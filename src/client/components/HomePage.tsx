@@ -1,48 +1,28 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { EXAMPLE } from "../lib/example";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { EXAMPLE, EXAMPLE_KINDS, exampleExtra, type ExampleKind } from "../lib/example";
 import { useLang, useT, type Lang } from "../lib/i18n";
 import { getShowcase, type Showcase } from "../lib/showcase";
-import { Button, FileDrop, Icon, LangSwitch, MadeBy, ProductMark, type IconName } from "./ui";
+import { Button, FileDrop, Icon, LangSwitch, MadeBy, ProductMark, Segmented, type IconName } from "./ui";
 
 const IMAGES = "image/jpeg,image/png,image/webp";
 const FACT_ICONS: IconName[] = ["people", "ruler", "font", "download"];
+/** How long each name stays before the next one settles onto the card. */
+const STEP_MS = 2400;
 
 /**
  * The home page (design system HomeScreen): what the product does, how little it takes, and the
  * way in, all in the first view. Anyone without a design sees it; a picture dropped anywhere on
- * the page, the drop zone, or "Try an example" leaves it for the editor. The language switch in its
- * bar changes the whole site, the example invitation included.
+ * the page, the drop zone, or one of the examples leaves it for the editor. The language switch
+ * in its bar changes the whole site, the examples included.
  */
-export function HomePage({ onFile, onExample }: { onFile(file: File): void; onExample(): void }) {
+export function HomePage({ onFile, onExample }: { onFile(file: File): void; onExample(kind: ExampleKind): void }) {
 	const t = useT();
 	const h = t.home;
 	const [lang] = useLang();
-	const [pics, setPics] = useState<{ lang: Lang; pics: Showcase } | null>(null);
 	const [over, setOver] = useState(false);
-
-	useEffect(() => {
-		let alive = true;
-		// Drawn after the page is up, so the first view never waits on fonts.
-		getShowcase(lang)
-			.then((s) => alive && setPics({ lang, pics: s }))
-			.catch(() => {});
-		return () => {
-			alive = false;
-		};
-	}, [lang]);
-
-	// Keep the last language's cards up while the new ones draw, so the picture never goes blank.
-	const shown = pics?.pics;
-	const names = EXAMPLE[lang].showcase;
-	const card = (i: number) => (shown ? <img className="wf-card-pic" src={shown.cards[i]} alt="" /> : <span className="wf-card-pic" />);
-	const fan = (withList: boolean, style?: React.CSSProperties) => (
-		<div className="wf-fan" aria-hidden="true" style={style}>
-			{card(2)}
-			{card(1)}
-			{card(0)}
-			{withList && <NameList names={names} lang={lang} />}
-		</div>
-	);
+	// The example on show in the hero; "Try an example" in the bar opens this one.
+	const [kind, setKind] = useState<ExampleKind>("invitation");
+	const names = EXAMPLE[lang].names;
 
 	return (
 		<div
@@ -66,7 +46,7 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 				<ProductMark />
 				<div className="wf-home-bar-end">
 					<LangSwitch />
-					<Button variant="ghost" onClick={onExample}>
+					<Button variant="ghost" onClick={() => onExample(kind)}>
 						{h.tryExample}
 					</Button>
 				</div>
@@ -101,7 +81,7 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 							))}
 						</ul>
 					</div>
-					{fan(true)}
+					<ExampleDemo lang={lang} kind={kind} onKind={setKind} />
 				</section>
 
 				<section className="wf-home-wrap wf-home-section">
@@ -111,12 +91,11 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 							n={1}
 							title={h.step1}
 							art={
-								<div className="wf-pic-box">
-									{shown ? <img className="wf-card-pic" src={shown.blank} alt="" /> : <span className="wf-card-pic" />}
-									<div className="wf-box" style={{ left: "22%", top: "38%", width: "56%", height: "15%", cursor: "default" }}>
+								<ExamplePic lang={lang} kind="invitation" width="78%">
+									<div className="wf-box" style={{ left: "14%", top: "38%", width: "72%", height: "15%", cursor: "default" }}>
 										<span className="wf-box-tag">{h.nameGoesHere}</span>
 									</div>
-								</div>
+								</ExamplePic>
 							}
 						>
 							{h.step1Text}
@@ -124,7 +103,17 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 						<Step n={2} title={h.step2} art={<NameList names={names} lang={lang} />}>
 							{h.step2Text}
 						</Step>
-						<Step n={3} title={h.step3} art={fan(false)}>
+						<Step
+							n={3}
+							title={h.step3}
+							art={
+								<div className="wf-stack">
+									<ExamplePic lang={lang} kind="certificate" width="62%" row={1} />
+									<ExamplePic lang={lang} kind="invitation" width="62%" row={0} />
+									<ExamplePic lang={lang} kind="badge" width="29%" row={2} />
+								</div>
+							}
+						>
 							{h.step3Text}
 						</Step>
 					</ol>
@@ -144,9 +133,21 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 				<section className="wf-home-wrap wf-home-section wf-home-end">
 					<h2 className="wf-home-h2">{h.endTitle}</h2>
 					<p>{h.endText}</p>
-					<Button size="lg" onClick={onExample}>
-						{h.tryExample}
-					</Button>
+					<ul className="wf-home-picks">
+						{EXAMPLE_KINDS.map((k, i) => (
+							<li key={k}>
+								<button type="button" className="wf-pick" onClick={() => onExample(k)}>
+									<span className="wf-pick-art">
+										<ExamplePic lang={lang} kind={k} width={k === "badge" ? "34%" : "72%"} row={i} />
+									</span>
+									<span className="wf-pick-label">
+										{h.kinds[k]}
+										<span>{h.tryIt}</span>
+									</span>
+								</button>
+							</li>
+						))}
+					</ul>
 				</section>
 			</main>
 			<footer className="wf-home-foot">
@@ -156,13 +157,121 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 	);
 }
 
-function NameList({ names, lang }: { names: readonly string[]; lang: Lang }) {
+/** The pictures for one example in one language, drawn once and then shared by every picture of it. */
+function useShowcase(lang: Lang, kind: ExampleKind): Showcase | null {
+	const key = `${lang}:${kind}`;
+	const [ready, setReady] = useState<{ key: string; show: Showcase } | null>(null);
+	useEffect(() => {
+		let alive = true;
+		getShowcase(lang, kind)
+			.then((show) => alive && setReady({ key, show }))
+			.catch(() => {});
+		return () => {
+			alive = false;
+		};
+	}, [key, lang, kind]);
+	return ready?.key === key ? ready.show : null;
+}
+
+/**
+ * One example design as the app draws it: the blank picture, with the name for `row` laid over it
+ * (a transparent layer made by the same renderer as the download). `animate` lets a new name rise
+ * into place; the design under it never moves.
+ */
+function ExamplePic({
+	lang,
+	kind,
+	width,
+	row,
+	animate,
+	children,
+}: {
+	lang: Lang;
+	kind: ExampleKind;
+	width: CSSProperties["width"];
+	row?: number;
+	animate?: boolean;
+	children?: ReactNode;
+}) {
+	const show = useShowcase(lang, kind);
 	return (
-		<ol className="wf-namelist" lang={lang}>
+		<div className="wf-expic" data-kind={kind} style={{ width }}>
+			{show && <img className="wf-expic-img" src={show.blank} alt="" draggable={false} />}
+			{show && row !== undefined && (
+				<img key={`${kind}${row}`} className={`wf-expic-img wf-expic-name${animate ? " wf-ex-in" : ""}`} src={show.names[row]} alt="" draggable={false} />
+			)}
+			{children}
+		</div>
+	);
+}
+
+/**
+ * The hero picture (design system ExampleDemo): one example with the name on it changing as the
+ * list is stepped through. Every 2.4 seconds the next name is highlighted and settles onto the
+ * card. It pauses while the pointer is over it and while the tab is hidden, and for anyone who asks
+ * for reduced motion it never runs: they see the first name, still.
+ */
+function ExampleDemo({ lang, kind, onKind }: { lang: Lang; kind: ExampleKind; onKind(kind: ExampleKind): void }) {
+	const t = useT();
+	const h = t.home;
+	const names = EXAMPLE[lang].names;
+	const extras = exampleExtra(lang, kind);
+	const [index, setIndex] = useState(0);
+	const [paused, setPaused] = useState(false);
+
+	useEffect(() => {
+		if (paused) return;
+		if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+		const timer = setInterval(() => {
+			if (!document.hidden) setIndex((i) => (i + 1) % names.length);
+		}, STEP_MS);
+		return () => clearInterval(timer);
+	}, [kind, lang, paused, names.length]);
+
+	const at = index % names.length;
+	return (
+		<div className="wf-exdemo">
+			<div className="wf-exdemo-stage" role="img" aria-label={h.pictureLabel} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+				<div className="wf-exdemo-card" data-kind={kind}>
+					<ExamplePic lang={lang} kind={kind} width="100%" row={at} animate />
+				</div>
+				<NameList names={names} lang={lang} current={at} extras={kind === "badge" ? extras : null} onPick={setIndex} />
+			</div>
+			<div className="wf-exdemo-bar">
+				<Segmented<ExampleKind>
+					label={h.chooseExample}
+					value={kind}
+					onChange={(k) => {
+						onKind(k);
+						setIndex(0);
+					}}
+					options={EXAMPLE_KINDS.map((k) => ({ value: k, label: h.kinds[k] }))}
+				/>
+			</div>
+		</div>
+	);
+}
+
+function NameList({
+	names,
+	lang,
+	current,
+	extras,
+	onPick,
+}: {
+	names: readonly string[];
+	lang: Lang;
+	current?: number;
+	extras?: readonly string[] | null;
+	onPick?(i: number): void;
+}) {
+	return (
+		<ol className="wf-namelist" lang={lang} aria-hidden={onPick ? true : undefined}>
 			{names.map((n, i) => (
-				<li key={n}>
+				<li key={n} aria-current={i === current ? "true" : undefined} onClick={onPick && (() => onPick(i))}>
 					<span className="wf-meta">{i + 1}</span>
-					{n}
+					<span className="wf-namelist-name">{n}</span>
+					{extras && <span className="wf-namelist-extra">{extras[i]}</span>}
 				</li>
 			))}
 		</ol>

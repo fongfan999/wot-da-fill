@@ -28,7 +28,7 @@ import { addCustomFont, DEFAULT_FONT, ensureFont } from "./lib/fonts";
 import { textsForRow } from "./lib/generate";
 import { loadTemplateImage } from "./lib/image";
 import { getSampleTemplate } from "./lib/showcase";
-import { EXAMPLE } from "./lib/example";
+import { EXAMPLE, type ExampleKind } from "./lib/example";
 import { useLang, useT } from "./lib/i18n";
 import { loadSharedTemplate, shareTemplate } from "./lib/share";
 import { formatBytes, matchColumn, placeholdersIn, ROW_NUMBER, unknownPlaceholders } from "./lib/text";
@@ -190,7 +190,7 @@ export function App() {
 	}, [paste, delimiter]);
 
 	// Before there is a list, a new box holds the example's name column in the site's language.
-	const firstColumnText = columns[0] ? `{${columns[0]}}` : EXAMPLE[lang].nameText;
+	const firstColumnText = `{${columns[0] ?? EXAMPLE[lang].nameColumn}}`;
 	const styleFrom = selected ?? fields.at(-1);
 
 	const makeField = (box: Box, text = firstColumnText) => {
@@ -249,16 +249,17 @@ export function App() {
 		}
 	};
 
-	const trySample = async () => {
+	/** Opens one example as a finished setup: its design, its text boxes placed and styled, and its list. */
+	const trySample = async (kind: ExampleKind = "invitation") => {
 		setBusy(t.drawingExample);
 		try {
-			const sample = await getSampleTemplate(lang);
+			const sample = await getSampleTemplate(lang, kind);
 			// The drawing is shared with the home page; the boxes are copied so edits never reach it.
 			const sampleFields = sample.fields.map((f) => ({ ...f, box: { ...f.box }, font: { ...f.font } }));
-			setImage(await loadTemplateImage(sample.blob, "example-invitation.png"));
+			setImage(await loadTemplateImage(sample.blob, sample.fileName));
 			resetFields(sampleFields);
 			setSelectedId(sampleFields[0].id);
-			if (!source) applySource(sampleSource(lang));
+			if (!source) applySource(sampleSource(lang, kind));
 			setStep("text");
 		} catch (err) {
 			say(err instanceof Error ? err.message : t.couldntDrawExample, "error");

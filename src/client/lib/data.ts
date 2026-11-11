@@ -1,5 +1,5 @@
 import type { DataSource, Row, Table } from "../types";
-import { EXAMPLE, getExampleLang, type ExampleLang } from "./example";
+import { exampleGrid, getExampleLang, type ExampleKind, type ExampleLang } from "./example";
 import { cleanCell } from "./text";
 
 export type Delimiter = "auto" | "tab" | "comma" | "semicolon" | "line";
@@ -162,13 +162,7 @@ export function buildTable(grid: string[][], hasHeader: boolean): Table {
 	return { columns, rows };
 }
 
-/** The example's list: the names and table numbers that go with the sample invitation. */
-export function sampleSource(lang: ExampleLang = getExampleLang()): DataSource {
-	const ex = EXAMPLE[lang];
-	return {
-		kind: "sample",
-		name: "sample",
-		grid: [[...ex.columns], ...ex.guests.map((n, i) => [n, String(Math.floor(i / 2) + 1)])],
-		hasHeader: true,
-	};
+/** An example's list: the sample names, with the table numbers or companies that go with that example. */
+export function sampleSource(lang: ExampleLang = getExampleLang(), kind: ExampleKind = "invitation"): DataSource {
+	return { kind: "sample", name: "sample", grid: exampleGrid(lang, kind), hasHeader: true };
 }

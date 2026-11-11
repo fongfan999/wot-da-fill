@@ -3,6 +3,7 @@ import type { CustomFont, Field, OutputFormat, Table, TemplateImage } from "../t
 import { codecFor, EXTENSION, formatFor, MIME, type CodecSettings } from "./codec";
 import { ensureFont, registerCustomFont } from "./fonts";
 import { EncoderPool } from "./pool";
+import { tr } from "./i18n";
 import { renderCard } from "./render";
 import { applyCase, buildFilenames, fillTemplate, matchColumn, placeholdersIn, ROW_NUMBER } from "./text";
 
@@ -193,7 +194,7 @@ export async function generateAll(job: Job): Promise<GenerateResult> {
 	return {
 		files,
 		zip: new Blob([zip], { type: "application/zip" }),
-		zipName: `${base}-${files.length}-cards.zip`,
+		zipName: tr().zipName(base, files.length),
 		totalBytes: progress.bytes,
 		elapsedMs: performance.now() - startedAt,
 		width,

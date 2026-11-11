@@ -136,7 +136,7 @@ function FieldEditor({
 
 	// One button per piece of the list; before there is a list, the pieces this text already uses.
 	const used = [...new Set(placeholdersIn(field.text).filter((p) => p !== ROW_NUMBER))];
-	const pieces = columns.length ? columns : used.length ? used : [EXAMPLE[getLang()].columns[0]];
+	const pieces = columns.length ? columns : used.length ? used : [EXAMPLE[getLang()].nameColumn];
 	const weights = googleFont
 		? [...new Set(googleFont.variants.filter((v) => v.endsWith("i") === field.font.italic).map((v) => parseInt(v, 10)))]
 		: [400];
