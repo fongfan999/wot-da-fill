@@ -159,7 +159,7 @@ export function DataPanel({
 						{!expectedColumns.length && (
 							<>
 								{" "}
-								·{" "}
+								{t.orElse}{" "}
 								<Button variant="link" onClick={() => onSource(sampleSource(undefined, exampleKind ?? "invitation"))}>
 									{t.trySampleNames}
 								</Button>
