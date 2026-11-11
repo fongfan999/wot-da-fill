@@ -775,6 +775,8 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 	.wf-home-bar-end .wf-btn-ghost { padding: 0 var(--space-2); }
 }
 
+/* Round links (GitHub) look like the round buttons beside them. */
+a.wf-iconbtn { text-decoration: none; }
 /* Theme button: a sun or moon in a round button, beside the language flag. */
 .wf-themebtn .wf-icon { transition: rotate 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 .wf-themebtn:hover .wf-icon { rotate: -15deg; }

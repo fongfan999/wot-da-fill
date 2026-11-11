@@ -9,6 +9,8 @@ import {
 	Button,
 	FileDrop,
 	Flag,
+	GITHUB_URL,
+	GitHubMark,
 	Icon,
 	IconButton,
 	MadeBy,
@@ -486,6 +488,7 @@ export function App() {
 								icon: theme === "dark" ? "sun" : "moon",
 								onClick: () => setTheme(theme === "dark" ? "light" : "dark"),
 							},
+							{ label: "GitHub", icon: <GitHubMark />, onClick: () => window.open(GITHUB_URL, "_blank", "noopener") },
 							{ label: t.startOver, icon: "refresh", onClick: startOver },
 						]}
 					/>

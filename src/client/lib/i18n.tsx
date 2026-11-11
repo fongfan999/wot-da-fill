@@ -89,6 +89,7 @@ const en = {
 	nOfM: (a: number, b: number) => `${enNum(a)} of ${enNum(b)}`,
 	language: "Language",
 	darkTheme: "Dark theme",
+	github: "Source code on GitHub",
 	lightTheme: "Light theme",
 	langName: { en: "English", vi: "Tiếng Việt" },
 
@@ -361,6 +362,7 @@ const vi: Strings = {
 	nOfM: (a, b) => `${viNum(a)} / ${viNum(b)}`,
 	language: "Ngôn ngữ",
 	darkTheme: "Giao diện tối",
+	github: "Mã nguồn trên GitHub",
 	lightTheme: "Giao diện sáng",
 	langName: en.langName,
 
