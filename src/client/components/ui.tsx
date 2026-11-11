@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useLang, useT, type Lang } from "../lib/i18n";
+import { useTheme } from "../lib/theme";
 import { LOGO } from "../lib/logo";
 
 /** One icon set: 24px grid, 1.8 stroke, round caps and joins, drawn in the text colour. */
@@ -34,6 +35,8 @@ const PATHS = {
 	more: "M5 12h.01M12 12h.01M19 12h.01",
 	alert: "M12 9v4M12 17h.01M10.3 4.3 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z",
 	info: "M12 11v6M12 7.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
+	sun: "M12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM12 2.5v2M12 19.5v2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M2.5 12h2M19.5 12h2M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4",
+	moon: "M20.5 14.3A8.5 8.5 0 1 1 9.7 3.5a6.8 6.8 0 0 0 10.8 10.8z",
 	globe: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.6 9h16.8M3.6 15h16.8M12 3c2.4 2.6 3.6 5.6 3.6 9s-1.2 6.4-3.6 9c-2.4-2.6-3.6-5.6-3.6-9S9.6 5.6 12 3z",
 	font: "M4 20 10 4h1l6 16M6.5 14h8M17 20h4",
 	ruler: "M4 17 17 4l3 3L7 20zM8 13l2 2M11 10l2 2M14 7l2 2",
@@ -102,12 +105,11 @@ export function ProductMark({ size = 26 }: { size?: number }) {
 /** The maker credit, the only place the Wot Da Fong mark appears. */
 export function MadeBy() {
 	const t = useT();
+	const [theme] = useTheme();
 	return (
 		<a className="wf-madeby" href="https://wotdafong.dev" target="_blank" rel="noreferrer" aria-label={t.madeBy}>
-			<picture>
-				<source srcSet="/wotdafong-paper.svg" media="(prefers-color-scheme: dark)" />
-				<img src="/wotdafong-ink.svg" alt="" width="16" height="16" />
-			</picture>
+			{/* The ink mark on light paper, the paper mark on dark. */}
+			<img src={theme === "dark" ? "/wotdafong-paper.svg" : "/wotdafong-ink.svg"} alt="" width="16" height="16" />
 			Wot Da Fong <span aria-hidden="true">↗</span>
 		</a>
 	);
@@ -682,5 +684,20 @@ export function LangSwitch() {
 		>
 			<Flag lang={lang} size={22} />
 		</button>
+	);
+}
+
+/** Light or dark: one round button showing what pressing it gives (a moon in light, a sun in dark). */
+export function ThemeSwitch() {
+	const t = useT();
+	const [theme, setTheme] = useTheme();
+	const next = theme === "dark" ? "light" : "dark";
+	return (
+		<IconButton
+			className="wf-themebtn"
+			icon={next === "dark" ? "moon" : "sun"}
+			label={next === "dark" ? t.darkTheme : t.lightTheme}
+			onClick={() => setTheme(next)}
+		/>
 	);
 }

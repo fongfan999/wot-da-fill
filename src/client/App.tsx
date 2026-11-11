@@ -30,6 +30,7 @@ import { loadTemplateImage } from "./lib/image";
 import { getSampleTemplate } from "./lib/showcase";
 import { EXAMPLE, type ExampleKind } from "./lib/example";
 import { useLang, useT } from "./lib/i18n";
+import { useTheme } from "./lib/theme";
 import { loadSharedTemplate, shareTemplate } from "./lib/share";
 import { formatBytes, matchColumn, placeholdersIn, ROW_NUMBER, unknownPlaceholders } from "./lib/text";
 import { useUndoable } from "./lib/useUndoable";
@@ -59,6 +60,7 @@ export function App() {
 	const [sharing, setSharing] = useState(false);
 	const [tooLong, setTooLong] = useState<TooLong[] | null>(null);
 	const [lang, setLang] = useLang();
+	const [theme, setTheme] = useTheme();
 	const t = useT();
 	const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -479,6 +481,11 @@ export function App() {
 						items={[
 							// Names the other language in its own words, so anyone can find their way back.
 							{ label: t.langName[lang === "en" ? "vi" : "en"], icon: <Flag lang={lang === "en" ? "vi" : "en"} size={20} />, onClick: () => setLang(lang === "en" ? "vi" : "en") },
+							{
+								label: theme === "dark" ? t.lightTheme : t.darkTheme,
+								icon: theme === "dark" ? "sun" : "moon",
+								onClick: () => setTheme(theme === "dark" ? "light" : "dark"),
+							},
 							{ label: t.startOver, icon: "refresh", onClick: startOver },
 						]}
 					/>

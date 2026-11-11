@@ -6,7 +6,7 @@ Made by [Wot Da Fong](https://wotdafong.dev). No accounts, no sign-in.
 
 ## What it does
 
-The whole site comes in English and Vietnamese. A first visit is in Vietnamese when the browser's language or region is Vietnamese (`vi`, any `-VN` locale, or a Vietnamese time zone) and in English otherwise; the flag switch in the home page's top bar (or "More" in the editor) changes it, and the choice is remembered on this device. The three examples (an invitation, a certificate and a name badge, drawn by `lib/sample.ts`) follow the same setting. A person's own design and list are never changed. Every string lives in `src/client/lib/i18n.tsx`.
+The whole site comes in English and Vietnamese. A first visit is in Vietnamese when the browser's language or region is Vietnamese (`vi`, any `-VN` locale, or a Vietnamese time zone) and in English otherwise; the flag switch in the home page's top bar (or "More" in the editor) changes it, and the choice is remembered on this device. The three examples (an invitation, a certificate and a name badge, drawn by `lib/sample.ts`) follow the same setting. A person's own design and list are never changed. Every string lives in `src/client/lib/i18n.tsx`. A sun/moon button beside the flag switches between light and dark; until someone presses it the site follows the system setting, and the choice is remembered (`src/client/lib/theme.ts`).
 
 Three steps, shown in the top bar and always one click away: **Design**, **Names**, **Text**, then one button makes every card. The UI follows the Wot Da Fill design system (Wot Da Fong brand: paper, ink, cobalt, system fonts).
 

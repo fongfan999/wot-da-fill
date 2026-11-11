@@ -48,8 +48,39 @@
 	--font-serif: Palatino, "Palatino Linotype", "Book Antiqua", "URW Palladio L", P052, Georgia, serif;
 	--font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
 }
+/* Dark: chosen with the theme button, or the system's setting until someone chooses. */
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--paper: #151713;
+	--paper-raised: #1b1e19;
+	--paper-sunk: #1f221d;
+	--stage: #10120e;
+	--ink: #ebeae2;
+	--muted: #a8ab9f;
+	--ink-soft: #626a5b;
+	--line: #30342d;
+	--line-strong: #474d43;
+	--line-control: #737a6b;
+	--accent: #93a9ff;
+	--accent-strong: #b8c6ff;
+	--accent-soft: #1f2744;
+	--on-accent: #0f1530;
+	--selection: #2b3768;
+	--selection-ink: #eef1ff;
+	--warm: #e48d5d;
+	--error: #f2a17a;
+	--error-soft: #3a2116;
+	--on-error: #2a1206;
+	--backdrop: #000000b3;
+	--shadow-sm: 0 1px 2px #00000040;
+	--shadow-card: 0 1px 2px #00000040, 0 24px 50px -24px #00000099;
+	--shadow-md: 0 2px 6px #00000040, 0 24px 48px -20px #000000b3;
+	--shadow-lg: 0 40px 80px -30px #000000cc;
+}
+:root[data-theme="light"] { color-scheme: light; }
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root:not([data-theme]) {
+		color-scheme: dark;
 		--paper: #151713;
 		--paper-raised: #1b1e19;
 		--paper-sunk: #1f221d;
@@ -736,3 +767,7 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 	.wf-home-bar-end { gap: var(--space-1); }
 	.wf-home-bar-end .wf-btn-ghost { padding: 0 var(--space-2); }
 }
+
+/* Theme button: a sun or moon in a round button, beside the language flag. */
+.wf-themebtn .wf-icon { transition: rotate 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.wf-themebtn:hover .wf-icon { rotate: -15deg; }

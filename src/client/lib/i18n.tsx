@@ -88,6 +88,8 @@ const en = {
 	num: enNum,
 	nOfM: (a: number, b: number) => `${enNum(a)} of ${enNum(b)}`,
 	language: "Language",
+	darkTheme: "Dark theme",
+	lightTheme: "Light theme",
 	langName: { en: "English", vi: "Tiếng Việt" },
 
 	// Steps and the editor frame
@@ -358,6 +360,8 @@ const vi: Strings = {
 	num: viNum,
 	nOfM: (a, b) => `${viNum(a)} / ${viNum(b)}`,
 	language: "Ngôn ngữ",
+	darkTheme: "Giao diện tối",
+	lightTheme: "Giao diện sáng",
 	langName: en.langName,
 
 	steps: { design: "Thiết kế", names: "Danh sách", text: "Chữ" },
