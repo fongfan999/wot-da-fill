@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { messageOf } from "../lib/errors";
 import { useT } from "../lib/i18n";
 import { Button, Dialog } from "./ui";
 
@@ -24,7 +25,7 @@ export function ShareDialog({ onShare, onClose }: { onShare(): Promise<string>; 
 		try {
 			await copy(await onShare());
 		} catch (err) {
-			setState({ kind: "error", message: err instanceof Error ? err.message : t.shareFailed });
+			setState({ kind: "error", message: messageOf(err, t.shareFailed) });
 		}
 	};
 
@@ -37,7 +38,15 @@ export function ShareDialog({ onShare, onClose }: { onShare(): Promise<string>; 
 					<input className="wf-input" readOnly value={state.url} onFocus={(e) => e.target.select()} aria-label={t.shareLinkLabel} />
 				</div>
 			)}
-			{state.kind === "error" && <p className="wf-small" style={{ color: "var(--error)" }} role="alert">{state.message}</p>}
+			{state.kind === "error" && (
+				<p className="wf-small" style={{ color: "var(--error)" }} role="alert">
+					{state.message}
+				</p>
+			)}
+			{/* Said aloud too: the button's own label changing is easy to miss without sight. */}
+			<span className="wf-sr" role="status">
+				{state.kind === "done" && state.copied ? t.linkCopied : ""}
+			</span>
 			<div className="wf-actions">
 				<Button variant="primary" icon={state.kind === "done" && state.copied ? "check" : "copy"} onClick={share} disabled={state.kind === "busy"}>
 					{state.kind === "busy" ? t.makingLink : state.kind === "done" && state.copied ? t.linkCopied : t.copyLink}

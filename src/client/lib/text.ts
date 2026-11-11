@@ -1,5 +1,6 @@
 import type { Row, TextCase } from "../types";
 import { EXAMPLE, getExampleLang } from "./example";
+import { tr } from "./i18n";
 
 const PLACEHOLDER = /\{([^{}]+)\}/g;
 
@@ -10,7 +11,14 @@ export function placeholdersIn(template: string): string[] {
 	return [...template.matchAll(PLACEHOLDER)].map((m) => m[1].trim());
 }
 
-const fold = (s: string) => stripDiacritics(s).toLowerCase().replace(/\s+/g, " ").trim();
+// A column with no heading is "Column A" in English and "Cột A" in Vietnamese; both fold to the same thing,
+// so text written in one language still finds its column in the other, and in shared layouts.
+const fold = (s: string) =>
+	stripDiacritics(s)
+		.toLowerCase()
+		.replace(/\s+/g, " ")
+		.trim()
+		.replace(/^cot ([a-z]{1,3})$/, "column $1");
 
 /** Finds the column a placeholder refers to, forgiving case/diacritics/spacing differences. */
 export function matchColumn(name: string, columns: string[]): string | undefined {
@@ -109,8 +117,10 @@ export function buildFilenames(
 	});
 }
 
+/** A file size in the page's language: "4.2 MB" in English, "4,2 MB" in Vietnamese. */
 export function formatBytes(bytes: number): string {
-	if (bytes < 1024) return `${bytes} B`;
+	const t = tr();
+	if (bytes < 1024) return `${t.num(Math.round(bytes))} B`;
 	const units = ["KB", "MB", "GB"];
 	let v = bytes / 1024;
 	let i = 0;
@@ -118,14 +128,13 @@ export function formatBytes(bytes: number): string {
 		v /= 1024;
 		i++;
 	}
-	return `${v >= 100 ? v.toFixed(0) : v.toFixed(1)} ${units[i]}`;
+	return `${t.num(v >= 100 ? Math.round(v) : Math.round(v * 10) / 10)} ${units[i]}`;
 }
 
 export function formatDuration(ms: number): string {
+	const t = tr();
 	const s = Math.max(0, Math.round(ms / 1000));
-	if (s < 60) return `${s}s`;
-	const m = Math.floor(s / 60);
-	return `${m}m ${String(s % 60).padStart(2, "0")}s`;
+	return s < 60 ? t.seconds(s) : t.minSec(Math.floor(s / 60), s % 60);
 }
 
 export function uid(prefix = ""): string {

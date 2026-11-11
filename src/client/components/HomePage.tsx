@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { EXAMPLE, EXAMPLE_KINDS, exampleExtra, type ExampleKind } from "../lib/example";
 import { useLang, useT, type Lang } from "../lib/i18n";
 import { getShowcase, type Showcase } from "../lib/showcase";
-import { Button, FileDrop, Icon, FeedbackLink, GitHubLink, LangSwitch, HomeLink, MadeBy, Segmented, ThemeSwitch, type IconName } from "./ui";
+import { Button, FileDrop, Icon, FeedbackLink, feedbackHref, GITHUB_URL, GitHubLink, LangSwitch, HomeLink, MadeBy, Segmented, ThemeSwitch, type IconName } from "./ui";
 
 const IMAGES = "image/jpeg,image/png,image/webp";
 const FACT_ICONS: IconName[] = ["people", "ruler", "download"];
@@ -28,7 +28,7 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 
 	return (
 		<div
-			className={`wf-home${over ? " wf-drop-over" : ""}`}
+			className={`wf-home${over ? " wf-home-over" : ""}`}
 			onDragOver={(e) => {
 				if (![...e.dataTransfer.types].includes("Files")) return;
 				e.preventDefault();
@@ -98,7 +98,7 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 							art={
 								<ExamplePic lang={lang} kind="invitation" width="78%">
 									<div className="wf-box" style={{ left: "14%", top: "38%", width: "72%", height: "15%", cursor: "default" }}>
-										<span className="wf-box-tag">{h.nameGoesHere}</span>
+										<span className="wf-box-empty">{h.nameGoesHere}</span>
 									</div>
 								</ExamplePic>
 							}
@@ -157,6 +157,12 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 			</main>
 			<footer className="wf-home-foot">
 				<MadeBy />
+				<a className="wf-foot-link" href={GITHUB_URL} target="_blank" rel="noreferrer">
+					{t.github}
+				</a>
+				<a className="wf-foot-link" href={feedbackHref(t.feedbackSubject, t.feedbackBody)}>
+					{t.feedback}
+				</a>
 			</footer>
 		</div>
 	);
@@ -263,7 +269,10 @@ function ExampleDemo({ lang, kind, onKind }: { lang: Lang; kind: ExampleKind; on
 		shownRow.current = at;
 	}, [at, kind]);
 	return (
-		<div className="wf-exdemo">
+		<div className="wf-exdemo" 
+			// Waits while the keyboard is inside it (not after a mouse click, which leaves the pointer free to move on).
+			onFocus={(e) => e.target.matches(":focus-visible") && setPaused(true)}
+			onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && setPaused(false)}>
 			<div className="wf-exdemo-stage" role="img" aria-label={h.pictureLabel} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
 				{leaving && (
 					<div key={`out-${leaving.kind}`} className="wf-exdemo-card wf-exdemo-out" data-kind={leaving.kind} aria-hidden="true">

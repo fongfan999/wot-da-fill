@@ -2,7 +2,7 @@ import { makeZip, predictLength } from "client-zip";
 import type { CustomFont, Field, OutputFormat, Table, TemplateImage } from "../types";
 import { codecFor, EXTENSION, formatFor, MIME, type CodecSettings } from "./codec";
 import { ensureFont, registerCustomFont } from "./fonts";
-import { EncoderPool } from "./pool";
+import { EncoderPool, poolSizeFor } from "./pool";
 import { tr } from "./i18n";
 import { renderCard } from "./render";
 import { applyCase, buildFilenames, fillTemplate, matchColumn, placeholdersIn, ROW_NUMBER } from "./text";
@@ -117,7 +117,7 @@ export async function generateAll(job: Job): Promise<GenerateResult> {
 		fields,
 		texts: textsForRow(fields, table, i),
 	});
-	const pool = new EncoderPool();
+	const pool = new EncoderPool(poolSizeFor(width, height));
 	const abort = () => pool.close();
 	signal.addEventListener("abort", abort, { once: true });
 
@@ -171,7 +171,7 @@ export async function generateAll(job: Job): Promise<GenerateResult> {
 	const manifest = new Blob([manifestCsv(files, table)], { type: "text/csv" });
 	const entries = [
 		...files.map((f) => ({ name: f.name, input: f.blob, lastModified: new Date() })),
-		{ name: "_manifest.csv", input: manifest, lastModified: new Date() },
+		{ name: tr().manifestFile, input: manifest, lastModified: new Date() },
 	];
 
 	progress.phase = "zip";
@@ -190,7 +190,7 @@ export async function generateAll(job: Job): Promise<GenerateResult> {
 
 	progress.phase = "done";
 	emit(true);
-	const base = template.name.replace(/\.[^.]+$/, "") || "cards";
+	const base = template.name.replace(/\.[^.]+$/, "") || tr().cardsBase;
 	return {
 		files,
 		zip: new Blob([zip], { type: "application/zip" }),
@@ -209,7 +209,7 @@ function csvCell(v: string): string {
 
 /** File ↔ row mapping, handy for mail merges. BOM so Excel opens Vietnamese text correctly. */
 function manifestCsv(files: GeneratedFile[], table: Table): string {
-	const header = ["file", ...table.columns].map(csvCell).join(",");
+	const header = [tr().manifestCard, ...table.columns].map(csvCell).join(",");
 	const lines = files.map((f) => [f.name, ...table.columns.map((c) => table.rows[f.row][c] ?? "")].map(csvCell).join(","));
 	return "﻿" + [header, ...lines].join("\r\n");
 }

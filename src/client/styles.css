@@ -47,6 +47,10 @@
 	--font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 	--font-serif: Palatino, "Palatino Linotype", "Book Antiqua", "URW Palladio L", P052, Georgia, serif;
 	--font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+	/* The same in both themes: sheets of card paper under a picture, and the dark around a card in the viewer. */
+	--card-paper: #fcfaf4;
+	--viewer: #0c0c0e;
+	--viewer-ink: #ffffff;
 }
 /* Dark: chosen with the theme button, or the system's setting until someone chooses. */
 :root[data-theme="dark"] {
@@ -126,14 +130,16 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Helpers */
 .wf-icon { flex: none; display: block; }
-.wf-serif { font-family: var(--font-serif); font-style: italic; font-weight: 400; color: var(--accent); }
+.wf-serif { font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 1.1em; color: var(--accent); }
 .wf-meta { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.02em; color: var(--muted); }
 .wf-muted { color: var(--muted); }
 .wf-small { font-size: 13px; line-height: 1.4; }
 .wf-row { display: flex; align-items: flex-end; gap: var(--space-2); }
 .wf-row > * { min-width: 0; }
 .wf-grow { flex: 1; }
-.wf-row .wf-seg button { padding: 0 var(--space-2); }
+/* Icon-only options in a row are as narrow as they can be, so two controls fit the panel side by side. */
+.wf-row .wf-seg button { min-width: 32px; padding: 0; }
+.wf-row-wrap { flex-wrap: wrap; }
 
 /* Brand */
 .wf-product { display: inline-flex; align-items: flex-end; text-decoration: none; }
@@ -160,16 +166,18 @@ button, input, select, textarea { font: inherit; color: inherit; }
 	transition: background-color 160ms ease, border-color 160ms ease, scale 160ms ease;
 }
 .wf-btn:hover:not(:disabled) { background: var(--paper-sunk); border-color: var(--line-control); }
-.wf-btn:active:not(:disabled) { scale: 0.98; }
+.wf-btn:active:not(:disabled), .wf-iconbtn:active:not(:disabled), .wf-fillin:active, .wf-seg button:active, .wf-menu-item:active { scale: 0.98; }
+a.wf-btn { user-select: none; -webkit-user-drag: none; }
 .wf-btn:disabled { cursor: not-allowed; border-color: var(--line); background: var(--paper-sunk); color: var(--muted); }
 .wf-btn-primary { border-color: transparent; background: var(--accent); color: var(--on-accent); }
 .wf-btn-primary:hover:not(:disabled) { border-color: transparent; background: var(--accent-strong); }
 .wf-btn-ghost { border-color: transparent; background: transparent; }
 .wf-btn-ghost:disabled { border-color: transparent; background: transparent; }
+.wf-btn-ghost:hover:not(:disabled) { border-color: transparent; }
 .wf-btn-danger { border-color: transparent; background: transparent; color: var(--error); }
 .wf-btn-danger:hover:not(:disabled) { border-color: transparent; background: var(--error-soft); }
 .wf-btn-link {
-	height: auto; padding: 0; border: 0; border-radius: 4px; background: none;
+	position: relative; height: auto; padding: 0; border: 0; border-radius: var(--radius-sm); background: none;
 	color: var(--accent); font-size: inherit; line-height: inherit;
 	text-decoration: underline; text-underline-offset: 4px;
 }
@@ -186,8 +194,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 	cursor: pointer; transition: background-color 160ms ease, color 160ms ease;
 }
 .wf-iconbtn:hover:not(:disabled) { background: var(--paper-sunk); color: var(--ink); }
-.wf-iconbtn:disabled { color: var(--ink-soft); cursor: default; }
+.wf-iconbtn:disabled { color: var(--line-control); cursor: not-allowed; }
 .wf-iconbtn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.wf-iconbtn[aria-pressed="true"]:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-strong); }
 .wf-iconbtn-sm { width: var(--control-sm); height: var(--control-sm); }
 
 /* Fields */
@@ -207,9 +216,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .wf-field-error .wf-input { border-color: var(--error); }
 textarea.wf-input { resize: vertical; }
 .wf-select, .wf-num { position: relative; display: block; }
-.wf-select select { appearance: none; padding-right: 36px; cursor: pointer; }
+.wf-select select { -webkit-appearance: none; appearance: none; padding-right: 36px; cursor: pointer; }
 .wf-select .wf-icon { position: absolute; right: 12px; top: 50%; translate: 0 -50%; color: var(--muted); pointer-events: none; }
-.wf-num .wf-input { padding-right: 36px; font-variant-numeric: tabular-nums; }
+.wf-num .wf-input { font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.wf-num:has(.wf-num-suffix) .wf-input { padding-right: 36px; }
+/* The arrows a browser adds to number boxes take room these narrow ones don't have; the arrow keys still work. */
+.wf-num input::-webkit-inner-spin-button, .wf-num input::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
 .wf-num-suffix {
 	position: absolute; right: 12px; top: 50%; translate: 0 -50%;
 	font: 12px var(--font-mono); color: var(--muted); pointer-events: none;
@@ -231,7 +243,7 @@ textarea.wf-input { resize: vertical; }
 .wf-seg button:hover { color: var(--ink); }
 .wf-seg button[aria-checked="true"] {
 	background: var(--paper-raised); color: var(--ink);
-	box-shadow: var(--shadow-sm), 0 0 0 1px var(--line-strong);
+	box-shadow: var(--shadow-sm), 0 0 0 1px var(--line-control);
 }
 
 .wf-switch { position: relative; display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer; }
@@ -264,9 +276,24 @@ textarea.wf-input { resize: vertical; }
 }
 .wf-color input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
 .wf-color input[type="color"]::-webkit-color-swatch { border: 1px solid var(--line-control); border-radius: var(--radius-sm); }
+.wf-color input[type="color"]::-moz-color-swatch { border: 1px solid var(--line-control); border-radius: var(--radius-sm); }
+/* The field around it shows the ring; a second one on the swatch would double it. */
+.wf-color input[type="color"]:focus-visible { outline: none; }
 .wf-color-hex { width: 60px; padding: 0; border: 0; background: transparent; font: 13px var(--font-mono); }
 .wf-color-hex:focus-visible { outline: none; }
 .wf-color:focus-within { outline: 2px solid var(--accent); border-color: transparent; }
+
+/* The design's own colours, one click each, beside the colour field. */
+.wf-color-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.wf-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.wf-swatch {
+	width: 28px; height: 28px; padding: 0; cursor: pointer;
+	border: 1px solid var(--line-control); border-radius: var(--radius-sm);
+}
+.wf-swatch:hover { border-color: var(--ink); }
+/* The colour in use is ringed in ink, so it can be told from the accent ring of the keyboard's focus. */
+.wf-swatch[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
+.wf-swatch:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 /* Drop zone */
 .wf-drop {
@@ -278,16 +305,13 @@ textarea.wf-input { resize: vertical; }
 .wf-drop-over { border-color: var(--accent); background: var(--accent-soft); }
 .wf-drop-title { margin: 0; }
 .wf-drop-hint { margin: 0; max-width: 40ch; color: var(--muted); text-wrap: pretty; }
-.wf-drop-compact { align-items: center; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); color: var(--muted); }
-.wf-drop-compact .wf-drop-title { font-size: 15px; line-height: 1.4; font-weight: 600; letter-spacing: 0; color: var(--ink); }
-.wf-drop-compact .wf-drop-hint { font-size: 13px; line-height: 1.4; }
 .wf-drop-text { display: flex; flex-direction: column; }
 
 /* Fill-ins */
 .wf-fillins { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .wf-fillins-label { margin-right: 2px; font-size: 13px; color: var(--muted); }
 .wf-fillin {
-	display: inline-flex; align-items: center; gap: 4px;
+	display: inline-flex; align-items: center; gap: 4px; max-width: 100%;
 	height: var(--control-sm); padding: 0 var(--space-3) 0 var(--space-2);
 	border: 1px solid transparent; border-radius: var(--radius-pill);
 	background: var(--accent-soft); color: var(--accent);
@@ -295,25 +319,38 @@ textarea.wf-input { resize: vertical; }
 }
 .wf-fillin:hover { border-color: var(--accent); }
 
-/* Steps */
-.wf-steps { display: flex; align-items: center; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
-.wf-steps li { display: flex; align-items: center; gap: var(--space-1); }
-.wf-step {
-	display: inline-flex; align-items: center; gap: var(--space-2);
-	height: var(--control-md); padding: 0 var(--space-3) 0 7px;
-	border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--muted);
-	font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer;
+/* Panel tabs, across the top of the side panel. */
+.wf-tabs {
+	display: flex; align-items: stretch; gap: var(--space-1); flex: none;
+	min-height: 52px; padding: 0 var(--space-3); border-bottom: 1px solid var(--line);
 }
-.wf-step:hover { background: var(--paper-sunk); color: var(--ink); }
+.wf-tab {
+	position: relative; display: inline-flex; align-items: center; gap: var(--space-2);
+	padding: 0 var(--space-3); border: 0; background: transparent; color: var(--muted);
+	font-size: 15px; font-weight: 600; white-space: nowrap; cursor: pointer;
+}
+.wf-tab:hover { color: var(--ink); }
+.wf-tab[aria-selected="true"] { color: var(--ink); }
+.wf-tab[aria-selected="true"]::after {
+	content: ""; position: absolute; left: var(--space-3); right: var(--space-3); bottom: -1px;
+	height: 2px; border-radius: 2px; background: var(--accent);
+}
+.wf-tab:focus-visible { outline: 3px solid var(--accent); outline-offset: -6px; border-radius: var(--radius-md); }
+.wf-tab-count {
+	min-width: 22px; padding: 1px 7px; border-radius: var(--radius-pill);
+	background: var(--paper-sunk); color: var(--muted); font: 600 12px/18px var(--font-mono); text-align: center;
+}
+.wf-tab[aria-selected="true"] .wf-tab-count { background: var(--accent-soft); color: var(--accent); }
+/* Marks a tab that still needs something, like an unread dot. */
+.wf-tab-dot { width: 8px; height: 8px; margin-left: -2px; border-radius: 50%; background: var(--accent); }
+.wf-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Numbered dot, used by the home page's how-it-works steps. */
 .wf-step-dot {
 	display: inline-grid; place-items: center; width: 26px; height: 26px;
 	border: 1.5px solid var(--line-control); border-radius: 50%;
 	font: 600 12px var(--font-mono);
 }
-.wf-step-current { background: var(--paper-raised); color: var(--ink); box-shadow: 0 0 0 1px var(--line-strong); }
-.wf-step-current .wf-step-dot { border-color: var(--ink); background: var(--ink); color: var(--paper); }
-.wf-step-done .wf-step-dot { border-color: transparent; background: var(--accent); color: var(--on-accent); }
-.wf-step-sep { width: var(--space-4); height: 1.5px; background: var(--line-strong); }
 
 /* Feedback */
 .wf-notice {
@@ -324,18 +361,18 @@ textarea.wf-input { resize: vertical; }
 .wf-notice > .wf-icon { margin-top: 1px; color: var(--accent); }
 .wf-notice-warn { background: var(--error-soft); }
 .wf-notice-warn > .wf-icon { color: var(--error); }
-.wf-notice-body { flex: 1; min-width: 0; }
+.wf-notice-body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .wf-notice .wf-btn-link { white-space: nowrap; }
 
 .wf-toast {
 	display: inline-flex; align-items: center; gap: var(--space-3);
-	min-height: 44px; max-width: 460px; padding: 6px 6px 6px var(--space-4);
+	min-height: 44px; max-width: min(460px, 100%); padding: 6px 6px 6px var(--space-4);
 	border-radius: var(--radius-lg); background: var(--ink); color: var(--paper);
 	font-size: 14px; box-shadow: var(--shadow-md);
 }
 .wf-toast-error { background: var(--error); color: var(--on-error); }
 .wf-toast-busy { padding-right: var(--space-4); border-radius: var(--radius-pill); }
-.wf-toast-text { flex: 1; }
+.wf-toast-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .wf-toast :focus-visible { outline-color: currentColor; }
 .wf-toast-action {
 	padding: 0 var(--space-2); border: 0; background: none; color: inherit;
@@ -363,27 +400,33 @@ textarea.wf-input { resize: vertical; }
 .wf-progress-row b { font: 600 13px var(--font-mono); }
 
 /* Editor */
+/* Boxes, tags, handles and the snap line sit on the person's design, not on the page, so they keep the
+   light theme's colours in both themes; a thin light halo keeps the outline visible on a dark design. */
+.wf-box, .wf-guide { --accent: #3453b6; --on-accent: #ffffff; --error: #a8431b; --on-error: #ffffff; --warm: #c0612f; }
 .wf-box {
 	position: absolute; display: flex; justify-content: center; cursor: move;
-	outline: 1.5px dashed var(--accent); outline-offset: 0;
+	outline: 1.5px dashed var(--accent); outline-offset: 0; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.7);
 	background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 .wf-box:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .wf-box-selected { outline: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .wf-box-overflow { outline-color: var(--error); }
-.wf-box-hidden, .wf-box-hidden:hover { outline-color: transparent; background: transparent; }
-.wf-box-hidden .wf-box-tag, .wf-box-hidden .wf-handle { display: none; }
-.wf-box-text {
-	position: absolute; inset: 0; display: flex; align-items: center; justify-content: inherit;
-	overflow: hidden; white-space: nowrap; pointer-events: none;
+.wf-box-hidden, .wf-box-hidden:hover { outline-color: transparent; background: transparent; box-shadow: none; }
+.wf-box-hidden .wf-box-tag, .wf-box-hidden .wf-handle, .wf-box-hidden .wf-box-empty { display: none; }
+.wf-box-empty {
+	position: absolute; inset: 0; display: grid; place-items: center; padding: 0 var(--space-2); overflow: hidden;
+	background: rgb(255 255 255 / 0.85); color: var(--accent);
+	font-size: 13px; font-weight: 600; text-align: center; white-space: nowrap; pointer-events: none;
 }
 .wf-box-tag {
 	position: absolute; left: -2px; bottom: 100%; margin-bottom: 4px;
 	display: inline-flex; align-items: center; height: 20px; padding: 0 var(--space-2);
 	border-radius: var(--radius-pill); background: var(--accent); color: var(--on-accent);
-	font: 600 11px var(--font-mono); white-space: nowrap; pointer-events: none;
+	font: 600 12px var(--font-mono); white-space: nowrap; pointer-events: none;
 }
 .wf-box-overflow .wf-box-tag { background: var(--error); color: var(--on-error); }
+/* A box that isn't being worked on shows only its number, so its tag covers as little of the design as it can. */
+.wf-box:not(.wf-box-selected, .wf-box-overflow, :hover) .wf-box-tag-rest { display: none; }
 /* Handles sit on the person's own design, whatever the theme, so their fill is a fixed white. */
 .wf-handle {
 	position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px;
@@ -406,12 +449,12 @@ textarea.wf-input { resize: vertical; }
 .wf-font-current .wf-icon { color: var(--muted); }
 .wf-font-name { font-size: 20px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wf-font-pop {
-	position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 6px);
+	position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 6px); scroll-margin: var(--space-3);
 	display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2);
 	border: 1px solid var(--line-strong); border-radius: var(--radius-lg);
 	background: var(--paper-raised); box-shadow: var(--shadow-md);
 }
-.wf-font-list { max-height: 232px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.wf-font-list { max-height: 232px; margin: 0; padding: 0; overflow-y: auto; overscroll-behavior: contain; list-style: none; }
 .wf-font-row {
 	display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
 	min-height: 44px; padding: 4px var(--space-3); border-radius: var(--radius-sm); cursor: pointer;
@@ -421,29 +464,15 @@ textarea.wf-input { resize: vertical; }
 .wf-font-row[aria-selected="true"] .wf-icon { color: var(--accent); }
 .wf-font-side { display: inline-flex; align-items: center; gap: 6px; }
 
-/* Data */
-.wf-table {
-	max-height: 240px; overflow: auto;
-	border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--paper-raised);
-}
-.wf-table table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.wf-table th, .wf-table td {
-	max-width: 220px; padding: var(--space-2) var(--space-3);
-	border-bottom: 1px solid var(--line); text-align: left;
-	overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.wf-table th { position: sticky; top: 0; background: var(--paper-sunk); font-size: 13px; font-weight: 600; color: var(--muted); }
-.wf-table td:first-child, .wf-table th:first-child { width: 1%; color: var(--muted); font: 12px var(--font-mono); }
-.wf-table tbody tr { cursor: pointer; }
-.wf-table tbody tr:hover { background: var(--paper-sunk); }
-.wf-table tbody tr[aria-selected="true"] { background: var(--accent-soft); font-weight: 600; }
-.wf-table-more { margin: 0; padding: var(--space-2) var(--space-3); font-size: 13px; color: var(--muted); }
+.wf-font-empty { margin: 0; padding: var(--space-2) var(--space-3); font-size: 13px; color: var(--muted); }
+.wf-font-row[data-active]:not([aria-selected="true"]) { background: var(--paper-sunk); }
 
-.wf-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.wf-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(140px, 45%), 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.wf-thumbs li { position: relative; min-width: 0; }
 .wf-thumb {
-	display: flex; flex-direction: column; gap: var(--space-1); padding: 6px;
+	display: flex; flex-direction: column; gap: var(--space-1); width: 100%; padding: 6px;
 	border: 1px solid var(--line-strong); border-radius: var(--radius-md);
-	background: var(--paper-raised); color: inherit; text-decoration: none;
+	background: var(--paper-raised); color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: zoom-in;
 	transition: border-color 160ms ease, translate 160ms ease;
 }
 .wf-thumb:hover { border-color: var(--accent); translate: 0 -2px; }
@@ -452,61 +481,122 @@ textarea.wf-input { resize: vertical; }
 	border-radius: var(--radius-sm); background: var(--paper-sunk); object-fit: contain;
 }
 .wf-thumb-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Saves one card; sits on the card's corner so it reads as "this one". */
+.wf-thumb-save {
+	position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 32px; height: 32px;
+	border: 1px solid var(--line-strong); border-radius: var(--radius-pill);
+	background: var(--paper-raised); color: var(--ink); box-shadow: var(--shadow-sm);
+	transition: background-color 160ms ease, color 160ms ease;
+}
+.wf-thumb-save:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+/* Full-size card viewer: always dark around the card, whatever the theme, like a photo viewer. */
+dialog.wf-viewer {
+	inset: 0; width: 100%; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+}
+/* Solid, so the dialog underneath never shows through the dark. */
+dialog.wf-viewer[open] {
+	display: grid; grid-template: auto minmax(0, 1fr) / minmax(0, 1fr); background: var(--viewer); color: var(--viewer-ink);
+}
+.wf-viewer :focus-visible { outline-color: var(--viewer-ink); }
+dialog.wf-viewer::backdrop { background: transparent; }
+/* The viewer itself holds the keyboard for the arrow keys; it is the whole screen, so it shows no ring. */
+dialog.wf-viewer:focus { outline: none; }
+.wf-viewer-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
+.wf-viewer-name { display: flex; align-items: baseline; gap: var(--space-3); flex: 1; min-width: 0; }
+.wf-viewer-name b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.wf-viewer-name .wf-meta { flex: none; white-space: nowrap; color: rgb(255 255 255 / 0.7); }
+.wf-viewer-head .wf-btn { flex: none; }
+.wf-viewer .wf-iconbtn { color: rgb(255 255 255 / 0.8); }
+.wf-viewer .wf-iconbtn:hover:not(:disabled) { background: rgb(255 255 255 / 0.12); color: var(--viewer-ink); }
+/* One fixed cell, so the card's "at most 100%" has something definite to measure against and it always fits. */
+.wf-viewer-stage {
+	position: relative; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center;
+	min-height: 0; padding: var(--space-4) calc(var(--space-12) + var(--space-4)) var(--space-8);
+}
+.wf-viewer-stage img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; border-radius: var(--radius-sm); box-shadow: 0 12px 40px rgb(0 0 0 / 0.5); }
+.wf-viewer .wf-viewer-nav { position: absolute; top: 50%; translate: 0 -50%; background: rgb(255 255 255 / 0.08); }
+.wf-viewer .wf-viewer-nav:hover:not(:disabled) { background: rgb(255 255 255 / 0.2); }
+.wf-viewer-prev { left: var(--space-3); }
+.wf-viewer-next { right: var(--space-3); }
+@media (max-width: 860px) {
+	.wf-viewer-stage { padding: var(--space-2) var(--space-2) calc(var(--space-12) + var(--space-4)); }
+	.wf-viewer .wf-viewer-nav { top: auto; bottom: var(--space-3); translate: none; }
+	.wf-viewer-head { gap: var(--space-2); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); }
+}
 
 /* Overlays and layout */
-.wf-backdrop { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: var(--space-4); background: var(--backdrop); }
 .wf-dialog {
 	width: min(100%, var(--wf-dialog-width, 520px)); max-height: 100%; overflow: auto;
 	border: 1px solid var(--line-strong); border-radius: var(--radius-xl);
 	background: var(--paper); color: var(--ink); box-shadow: var(--shadow-lg);
+	overscroll-behavior: contain; transition: width 220ms ease;
 }
+/* The page behind a dialog stays where it is. */
+html:has(dialog[open]) { overflow: hidden; }
 .wf-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-5) var(--space-4) 0 var(--space-6); }
 .wf-dialog-title { margin: 0; font-size: 22px; line-height: 1.2; font-weight: 600; letter-spacing: -0.02em; }
 .wf-dialog-body { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4) var(--space-6) var(--space-6); }
 .wf-dialog-body p { margin: 0; }
-.wf-dialog-foot { display: flex; justify-content: flex-end; gap: var(--space-2); padding: 0 var(--space-6) var(--space-6); }
 
 .wf-section { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); }
 .wf-section + .wf-section { border-top: 1px solid var(--line); }
+/* Right under the panel tabs, the tab line already separates; less space keeps the content close to it, on both tabs. */
+.wf-panel-body > .wf-section:first-child, .wf-panel-body > .wf-dropzone > .wf-section:first-child { padding-top: var(--space-3); }
 .wf-section-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 24px; }
+.wf-section-aside { display: flex; gap: var(--space-2); margin-left: auto; }
 .wf-section-title { margin: 0; font-size: 16px; line-height: 1.3; font-weight: 600; }
 .wf-section p { margin: 0; }
 
-.wf-app { position: relative; display: grid; grid-template-rows: var(--topbar) minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); height: 100vh; min-height: 560px; background: var(--paper); }
+.wf-app { position: relative; display: grid; grid-template-rows: var(--topbar) minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); height: 100vh; height: 100dvh; min-height: 560px; background: var(--paper); }
+/* One bar over everything: logo, the name on show, then the edit tools and the app's actions. */
 .wf-topbar {
-	display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--space-4);
-	padding: 0 var(--space-5); border-bottom: 1px solid var(--line);
+	display: flex; align-items: center; gap: var(--space-3);
+	padding: 0 var(--space-3) 0 var(--space-5); border-bottom: 1px solid var(--line);
 }
+.wf-topbar-sep { flex: none; width: 1px; height: 24px; background: var(--line); }
+.wf-topbar-name { flex: 1; min-width: 0; display: flex; align-items: center; }
 .wf-topbar-actions { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-1); }
+.wf-topbar-actions .wf-topbar-sep { margin: 0 var(--space-1); }
 .wf-work { display: grid; grid-template-columns: minmax(0, 1fr) var(--sidebar); min-height: 0; }
-.wf-work-solo { grid-template-columns: minmax(0, 1fr); }
 .wf-stage {
 	position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0;
 	background: radial-gradient(var(--line-strong) 1.1px, transparent 1.5px) 0 0 / 18px 18px, var(--stage);
 }
-.wf-stage-bar {
-	display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
-	min-height: 56px; padding: 0 var(--space-3); border-bottom: 1px solid var(--line); background: var(--paper);
-}
 .wf-stage-tools { display: flex; align-items: center; }
-.wf-stage-body { flex: 1; min-height: 0; display: grid; place-items: center; align-content: center; gap: var(--space-4); padding: var(--space-6); }
 .wf-stage-hint { margin: 0; padding: 0 var(--space-4) var(--space-3); text-align: center; font-size: 13px; color: var(--muted); }
 .wf-panel { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--line); background: var(--paper); }
-.wf-panel-body { flex: 1; min-height: 0; overflow-y: auto; }
+.wf-panel-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .wf-panel-foot { display: flex; flex-direction: column; align-items: stretch; gap: var(--space-2); padding: var(--space-4) var(--space-5); border-top: 1px solid var(--line); }
 .wf-panel-foot p { margin: 0; }
 .wf-panel-foot .wf-madeby { align-self: center; }
+.wf-panel-credit { display: none; justify-content: center; padding: var(--space-4) var(--space-5) var(--space-5); }
 
 /* Narrow screens: the design stays on top, the panel becomes the page below it. */
 @media (max-width: 860px) {
-	.wf-app { height: auto; min-height: 100vh; }
-	.wf-topbar { grid-template-columns: auto 1fr auto; padding: 0 var(--space-3); gap: var(--space-2); }
+	.wf-app { height: auto; min-height: 100vh; min-height: 100dvh; grid-template-rows: auto minmax(0, 1fr); }
+	/* Phones: logo and tools on the first row, the name on show on its own row below. */
+	.wf-topbar { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "logo actions" "name name"; gap: 0; padding: 0; }
+	.wf-topbar > .wf-home-link { grid-area: logo; align-self: center; margin-left: var(--space-3); }
+	.wf-topbar > .wf-topbar-sep { display: none; }
+	.wf-topbar-actions { grid-area: actions; min-height: var(--topbar); padding-right: var(--space-2); }
+	.wf-topbar-name { grid-area: name; min-height: 48px; padding: 0 var(--space-1); border-top: 1px solid var(--line); }
 	.wf-work { display: block; }
-	.wf-stage { height: 56vh; }
+	/* As tall as the design needs at full width (plus its padding and the line of help), never more than 56% of the screen. */
+	.wf-stage { height: min(56svh, calc((100vw - 2 * var(--space-3)) * var(--wf-aspect, 0.7) + 2 * var(--space-3) + 52px)); min-height: 220px; }
 	.wf-panel { border-left: 0; border-top: 1px solid var(--line); }
-	.wf-panel-foot { position: sticky; bottom: 0; background: var(--paper); }
-	.wf-step-label, .wf-product .wf-product-name { display: none; }
-	.wf-step-current .wf-step-label { display: inline; }
+	/* The bar that stays on screen holds only what is needed to go on: the fit notice and the button.
+	   Above the list grid's sticky heading row, which would otherwise scroll over the button. */
+	.wf-panel-foot {
+		position: sticky; bottom: 0; z-index: 2; background: var(--paper);
+		padding: var(--space-3) var(--space-4);
+	}
+	/* What the keyboard moves to is never left under the bar that stays on screen. */
+	html { scroll-padding-bottom: 150px; }
+	.wf-panel-foot .wf-notice { padding: var(--space-2) var(--space-3); font-size: 13px; }
+	.wf-panel-foot .wf-madeby { display: none; }
+	.wf-panel-credit { display: flex; }
+	.wf-product .wf-product-name { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -514,14 +604,12 @@ textarea.wf-input { resize: vertical; }
 }
 
 /* ---- App-only pieces: things that live in the running product, not in the system's previews ---- */
-.wf-step:disabled { cursor: default; background: transparent; color: var(--muted); }
-.wf-step-current:disabled { background: var(--paper-raised); color: var(--ink); }
 
 /* Native dialog */
-dialog.wf-dialog { padding: 0; max-height: calc(100vh - 48px); }
+dialog.wf-dialog { padding: 0; max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); }
 dialog.wf-dialog::backdrop { background: var(--backdrop); }
 @media (prefers-reduced-motion: no-preference) {
-	dialog.wf-dialog[open] { animation: wf-rise 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+	dialog.wf-dialog[open] { animation: wf-rise 220ms ease-out; }
 	.wf-toast { animation: wf-rise 220ms ease-out; }
 }
 @keyframes wf-rise { from { opacity: 0; translate: 0 12px; } }
@@ -536,18 +624,43 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 	display: flex; align-items: center; gap: var(--space-2); width: 100%; height: var(--control-md); padding: 0 var(--space-3);
 	border: 0; border-radius: var(--radius-sm); background: transparent; font-size: 14px; text-align: left; cursor: pointer;
 }
-.wf-menu-item:hover { background: var(--paper-sunk); }
+.wf-menu-item { white-space: nowrap; }
+.wf-menu-item:hover, .wf-menu-item:focus-visible { background: var(--paper-sunk); }
+.wf-menu-item:focus-visible { outline-offset: -3px; }
+/* The flag is a little wider than the icons; pulled in so every label starts on the same line. */
+.wf-menu-item .wf-flag { margin: 0 -1px; }
+.wf-menu-sep { height: 1px; margin: var(--space-1) var(--space-2); background: var(--line); }
 
 /* Stage */
 .wf-switcher .wf-meta { white-space: nowrap; }
-.wf-stage-label { padding: 0 var(--space-2); font-size: 14px; color: var(--muted); }
-.wf-stage-tools .wf-sep { width: 1px; height: 20px; margin: 0 var(--space-1); background: var(--line); }
-.editor { flex: 1; min-height: 0; display: grid; place-items: center; padding: var(--space-6); overflow: hidden; }
+.wf-stage-label { display: inline-flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2); font-size: 14px; color: var(--muted); }
+/* The name above the design opens the list. */
+.wf-stage-link {
+	min-height: var(--control-sm); border: 0; border-radius: var(--radius-md);
+	background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.wf-stage-link.wf-stage-label { min-width: 0; max-width: 100%; }
+.wf-stage-cta { flex: none; color: var(--accent); font-weight: 600; }
+.wf-stage-cta::before { content: "·"; margin-right: var(--space-2); color: var(--muted); font-weight: 400; }
+.wf-stage-link:hover { background: var(--paper-sunk); color: var(--ink); }
+.wf-stage-tools .wf-sep { width: 1px; height: 24px; margin: 0 var(--space-1); background: var(--line); }
+/* Clipped a little outside its edge, so the tag of a box at the very top of the design still shows. */
+.editor { flex: 1; min-height: 0; display: grid; place-items: center; padding: var(--space-6); overflow: clip; overflow-clip-margin: 24px; }
 .canvas-wrap { position: relative; box-shadow: var(--shadow-card); background: repeating-conic-gradient(#0000000a 0 25%, transparent 0 50%) 0 0 / 16px 16px, #fff; }
 .canvas-wrap canvas { display: block; }
-.overlay { position: absolute; inset: 0; cursor: crosshair; touch-action: none; }
+.overlay { position: absolute; inset: 0; cursor: crosshair; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .overlay:focus { outline: none; }
 .overlay:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+/* Follows the mouse over empty parts of the design until the first box is drawn. */
+.wf-draw-hint {
+	position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none;
+	display: inline-flex; align-items: center; gap: 6px;
+	padding: 5px 12px 5px 9px; border-radius: var(--radius-pill);
+	background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-sm);
+	font-size: 13px; font-weight: 600; white-space: nowrap;
+	opacity: 0; transition: opacity 120ms ease;
+}
+.wf-draw-hint[data-show] { opacity: 1; }
 .wf-box-drafting { pointer-events: none; outline-style: solid; background: color-mix(in srgb, var(--accent) 14%, transparent); }
 .h-nw { left: 0; top: 0; cursor: nwse-resize; }
 .h-n { left: 50%; top: 0; cursor: ns-resize; }
@@ -562,52 +675,101 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 .wf-toasts {
 	position: fixed; left: 50%; bottom: var(--space-5); translate: -50% 0; z-index: 50;
 	display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: min(460px, calc(100vw - 32px));
+	pointer-events: none;
+}
+.wf-toasts > * { pointer-events: auto; }
+/* In the editor, messages sit over the design, clear of the line of help under it and of the side panel. */
+.wf-toasts-editor { left: calc((100vw - var(--sidebar)) / 2); bottom: var(--space-12); width: min(460px, calc(100vw - var(--sidebar) - 32px)); }
+@media (max-width: 860px) {
+	/* On a phone the bottom of the screen is the button's; messages come in under the top bar instead. */
+	.wf-toasts-editor { left: 50%; top: calc(var(--topbar) + 48px + var(--space-3)); bottom: auto; width: min(460px, calc(100vw - 32px)); }
 }
 
 /* Panel content */
-.wf-file { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
-.wf-file > span { display: flex; flex-direction: column; min-width: 0; }
-.wf-file b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .wf-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .wf-paste { position: relative; display: flex; flex-direction: column; gap: 6px; }
-.wf-paste.wf-drop-over textarea { border-color: var(--accent); background: var(--accent-soft); }
-.wf-paste textarea { min-height: 150px; }
+.wf-list-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--control-sm); }
+.wf-list-head .wf-btn { flex: none; margin-right: calc(-1 * var(--space-3)); }
+/* The Names tab, top to bottom, takes a dropped spreadsheet; while one is dragged over, it says so. */
+.wf-dropzone { position: relative; min-height: 100%; }
+.wf-drop-overlay {
+	position: absolute; inset: var(--space-3); z-index: 3; display: grid; place-items: center; padding: var(--space-4);
+	border: 2px dashed var(--accent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--accent-soft) 92%, transparent);
+	color: var(--accent); font-weight: 600; text-align: center; pointer-events: none;
+}
+
+/* The list grid: a small spreadsheet. Cells are plain inputs; the focused one gets the outline. */
+.wf-grid-wrap { display: flex; flex-direction: column; gap: var(--space-1); }
+.wf-grid {
+	max-height: 360px; overflow: auto; overscroll-behavior: contain;
+	border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--paper-raised);
+}
+/* Separate borders, so the heading row keeps its rule while the rows scroll under it. */
+.wf-grid table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 14px; }
+.wf-grid th, .wf-grid td { padding: 0; border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); }
+.wf-grid th { position: sticky; top: 0; z-index: 1; background: var(--paper-sunk); }
+.wf-grid tr > :first-child { border-left: 0; }
+.wf-grid tbody tr:last-child td { border-bottom: 0; }
+.wf-grid .wf-grid-no {
+	padding: 0 var(--space-2); text-align: right;
+	color: var(--muted); font: 12px var(--font-mono); white-space: nowrap; user-select: none;
+}
+.wf-grid tr[aria-current="true"] .wf-grid-no { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.wf-grid-cell {
+	display: block; width: 100%; height: 36px; padding: 0 var(--space-3); text-overflow: ellipsis;
+	border: 0; background: transparent; color: var(--ink); font: inherit;
+}
+.wf-grid-cell::placeholder { color: var(--muted); opacity: 1; font-weight: 400; }
+.wf-grid-cell:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--paper); }
+.wf-grid th .wf-grid-cell { font-size: 13px; font-weight: 600; }
+.wf-grid-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.wf-grid-foot .wf-btn { margin-left: calc(-1 * var(--space-3)); }
 .wf-or { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: 14px; color: var(--muted); }
-.wf-tweaks { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--paper-sunk); }
+/* Rows share the inputs' edges, and their text sits where an input's text does. */
 .wf-boxlist { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
-.wf-boxlist button {
-	display: flex; align-items: center; gap: var(--space-2); width: 100%; min-height: var(--control-md); padding: 0 var(--space-3);
-	border: 1px solid transparent; border-radius: var(--radius-md); background: transparent; text-align: left; cursor: pointer;
+.wf-boxlist li { display: flex; align-items: center; gap: 2px; border: 1px solid transparent; border-radius: var(--radius-md); }
+.wf-boxlist li:hover { background: var(--paper-sunk); }
+.wf-boxlist li[aria-current="true"] { border-color: var(--line-strong); background: var(--accent-soft); }
+.wf-boxlist li .wf-iconbtn { flex: none; margin-right: 2px; }
+.wf-boxlist-pick {
+	display: flex; align-items: baseline; gap: var(--space-2); width: 100%; min-height: var(--control-md); padding: 9px var(--space-3);
+	border: 0; border-radius: var(--radius-md); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
-.wf-boxlist button:hover { background: var(--paper-sunk); }
-.wf-boxlist button[aria-current="true"] { border-color: var(--line-strong); background: var(--accent-soft); font-weight: 600; }
-.wf-boxlist .wf-meta { flex: none; }
-.wf-more-body { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-2); }
+.wf-boxlist-pick[aria-current="true"] { font-weight: 600; }
+.wf-boxlist .wf-meta { flex: none; min-width: 2ch; }
+.wf-more-body { display: flex; flex-direction: column; gap: var(--space-4); padding-bottom: var(--space-2); }
+.wf-field-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 28px; margin-bottom: -4px; }
+.wf-field-head .wf-btn { margin-right: calc(-1 * var(--space-3)); }
+/* A plain row across the panel, ruled off above, so it lines up with everything else. */
 .wf-more > summary {
-	display: inline-flex; align-items: center; gap: var(--space-2); align-self: flex-start; height: var(--control-md);
-	margin-left: calc(-1 * var(--space-3)); padding: 0 var(--space-3); border-radius: var(--radius-pill);
-	font-size: 14px; font-weight: 600; list-style: none; cursor: pointer;
+	display: flex; align-items: center; justify-content: space-between; height: var(--control-md);
+	border-top: 1px solid var(--line); color: var(--muted);
+	font-size: 13px; font-weight: 600; list-style: none; cursor: pointer;
 }
+.wf-more > summary:focus { outline: none; }
+.wf-more > summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
 .wf-more > summary::-webkit-details-marker { display: none; }
-.wf-more > summary:hover { background: var(--paper-sunk); }
+.wf-more > summary:hover { color: var(--ink); }
 .wf-more[open] > summary .wf-icon { rotate: 180deg; }
 .wf-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
-.wf-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); }
+.wf-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); }
+/* Narrow boxes: no room for a unit, so less padding keeps four-digit pixel values readable. */
+.wf-grid-4 .wf-input { min-width: 0; padding-left: var(--space-2); padding-right: var(--space-1); }
 .wf-actions { display: flex; justify-content: flex-end; gap: var(--space-1); }
-.wf-row-wrap { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
+.wf-iconbtn-danger:hover:not(:disabled) { background: var(--error-soft); color: var(--error); }
 
 /* Finished dialog */
 .wf-ready { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--accent-soft); }
 .wf-ready > div { min-width: 0; }
 .wf-ready b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wf-dialog-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
-.wf-details > summary { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 14px; font-weight: 600; cursor: pointer; list-style: none; }
-.wf-details > summary::-webkit-details-marker { display: none; }
-.wf-details[open] > summary .wf-icon { rotate: 180deg; }
-.wf-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-2); margin: var(--space-3) 0 0; }
-.wf-stats div { padding: var(--space-3); border-radius: var(--radius-md); background: var(--paper-sunk); }
-.wf-stats dt { font-size: 13px; color: var(--muted); }
-.wf-stats dd { margin: 2px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wf-details-toggle { margin-left: calc(-1 * var(--space-4)); }
+.wf-details-toggle[aria-expanded="true"] .wf-icon { rotate: 180deg; }
+.wf-details { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--paper-sunk); }
+/* Label on the left, value on the right, one fact per line. */
+.wf-stats { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px var(--space-5); margin: 0; font-size: 14px; }
+.wf-stats dt { color: var(--muted); }
+.wf-stats dd { margin: 0; font-variant-numeric: tabular-nums; }
 .wf-share-link { display: flex; gap: var(--space-2); }
 .wf-share-link .wf-input { font: 13px var(--font-mono); }
 
@@ -616,19 +778,18 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 @media (pointer: coarse) {
 	.fine-pointer { display: none; }
 	.coarse-pointer { display: inline; }
+	/* Fingers need more to aim at than a mouse: bigger handles to grab and taller small controls. */
+	.wf-handle::after { content: ""; position: absolute; inset: -14px; }
+	.wf-btn-link::after { content: ""; position: absolute; inset: -10px -4px; }
+	.wf-seg button, .wf-fillin, .wf-btn-sm, .wf-swatch, .wf-toast .wf-iconbtn { min-height: 40px; min-width: 40px; }
+	.wf-toast-action { min-height: 40px; }
+	/* iOS zooms the page when a field's text is under 16px. */
+	.wf-input, .wf-grid-cell, .wf-color-hex { font-size: 16px; }
 }
 @media (max-width: 860px) {
-	.wf-stage { height: 60vh; }
 	.editor { padding: var(--space-3); }
 	.wf-app { grid-template-columns: minmax(0, 1fr); }
-	.wf-topbar { gap: var(--space-1); padding: 0 var(--space-2) 0 var(--space-3); }
-	.wf-topbar > .wf-steps { justify-self: center; }
-	.wf-steps, .wf-steps li { gap: 2px; }
-	.wf-step-sep { width: var(--space-2); }
-	.wf-step { padding: 0 6px; }
-	.wf-step-current { padding-right: var(--space-3); }
 	.wf-topbar-actions { gap: 0; }
-	.wf-stage-bar { padding: 0 var(--space-1); gap: var(--space-1); }
 	.wf-switcher-label { max-width: none; }
 	.wf-ready { flex-direction: column; align-items: stretch; }
 	.wf-topbar-actions .wf-btn { width: var(--control-md); padding: 0; font-size: 0; gap: 0; }
@@ -675,13 +836,15 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 .wf-home-end { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); text-align: center; }
 .wf-home-end .wf-home-h2 { margin-bottom: 0; }
 .wf-home-end p { margin: 0; max-width: 52ch; color: var(--muted); }
-.wf-home-foot { display: flex; justify-content: center; padding: var(--space-6); border-top: 1px solid var(--line); }
+.wf-home-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-2) var(--space-6); padding: var(--space-6); border-top: 1px solid var(--line); }
+.wf-foot-link { color: var(--muted); font-size: 13px; text-decoration: none; transition: color 160ms ease; }
+.wf-foot-link:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
 
 /* The picture of what the product does: a list of names beside the cards it becomes. */
 /* The example designs, as the app draws them: the blank picture with a name layer over it. The
    pictures carry their own colours; only the shadow and the space they hold come from here. */
-.wf-expic { position: relative; flex: none; container-type: inline-size; aspect-ratio: 10 / 7; background: var(--paper-raised); box-shadow: var(--shadow-card); }
-.wf-expic[data-kind="badge"] { aspect-ratio: 3 / 4; border-radius: 5cqw; }
+.wf-expic { position: relative; flex: none; container-type: inline-size; aspect-ratio: 10 / 7; background: var(--card-paper); box-shadow: var(--shadow-card); }
+.wf-expic[data-kind="badge"] { aspect-ratio: 3 / 4; border-radius: 5cqw; overflow: hidden; }
 .wf-expic-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; user-select: none; }
 .wf-expic:has(.wf-expic-img) { background: none; }
 @keyframes wf-ex-in { from { opacity: 0; translate: 0 1.4cqw; filter: blur(0.5cqw); } }
@@ -697,7 +860,7 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 .wf-exdemo-card[data-kind="badge"] { width: 42%; margin: 0 0 0 30%; }
 /* Two sheets behind the card: there are more cards where this one came from. */
 .wf-exdemo-card::before, .wf-exdemo-card::after {
-	content: ""; position: absolute; inset: 0; z-index: -1; border: 1px solid var(--line-strong); background: var(--paper-raised);
+	content: ""; position: absolute; inset: 0; z-index: -1; border: 1px solid var(--line-strong); background: var(--card-paper);
 	rotate: -2.4deg; translate: -1.4% 1.6%;
 }
 .wf-exdemo-card::after { rotate: 2deg; translate: 1.6% 1%; }
@@ -711,6 +874,15 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 @keyframes wf-exdemo-out { to { opacity: 0; translate: 0 -3%; scale: 0.97; } }
 .wf-exdemo-in { animation: wf-exdemo-in 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .wf-exdemo-out { pointer-events: none; animation: wf-exdemo-out 360ms ease-in both; }
+/* Without motion there is no leaving: the old card just goes. */
+@media (prefers-reduced-motion: reduce) {
+	.wf-exdemo-out { display: none; }
+}
+/* On the narrowest phones the three examples share the row evenly instead of pushing the page sideways. */
+@media (max-width: 400px) {
+	.wf-exdemo-bar .wf-seg { display: flex; width: 100%; }
+	.wf-exdemo-bar .wf-seg button { flex: 1 1 auto; min-width: 0; padding: 0 6px; font-size: 13px; }
+}
 .wf-exdemo-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
 
 .wf-namelist {
@@ -720,7 +892,7 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 }
 .wf-namelist li { display: flex; align-items: baseline; gap: var(--space-3); padding: 6px var(--space-2); border-radius: var(--radius-sm); white-space: nowrap; transition: background-color 200ms ease; }
 .wf-namelist-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.wf-namelist-extra { font-size: 12px; color: var(--muted); }
+.wf-namelist-extra { font-size: 13px; color: var(--muted); }
 .wf-namelist li[aria-current="true"] { background: var(--accent-soft); font-weight: 600; }
 
 /* Three finished cards of different kinds, for the last step's picture. */
@@ -756,7 +928,9 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 	.wf-home-picks { grid-template-columns: minmax(0, 1fr); }
 }
 
-.wf-home.wf-drop-over { outline: 3px dashed var(--accent); outline-offset: -12px; }
+.wf-home-over { outline: 3px dashed var(--accent); outline-offset: -12px; }
+/* The box in the first step's picture is a drawing of one, not one to point at. */
+.wf-home-art .wf-box { pointer-events: none; cursor: default; }
 
 /* Language switch: one round button with the current language's flag; the ring keeps a light flag visible on paper. */
 .wf-home-bar-end { display: flex; align-items: center; gap: var(--space-2); }
@@ -767,6 +941,8 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 @media (max-width: 480px) {
 	.wf-home-bar-end { gap: var(--space-1); }
 	.wf-home-bar-end .wf-btn-ghost { padding: 0 var(--space-2); }
+	/* No room for every round button on a phone; these two are links in the footer as well. */
+	.wf-home-bar-end a.wf-iconbtn { display: none; }
 }
 
 /* Round links (GitHub) look like the round buttons beside them. */

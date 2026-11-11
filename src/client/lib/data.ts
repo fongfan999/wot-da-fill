@@ -1,10 +1,13 @@
 import type { DataSource, Row, Table } from "../types";
 import { exampleGrid, getExampleLang, type ExampleKind, type ExampleLang } from "./example";
+import { UserError } from "./errors";
+import { tr } from "./i18n";
 import { cleanCell } from "./text";
 
 export type Delimiter = "auto" | "tab" | "comma" | "semicolon" | "line";
 
 const TEXT_EXT = /\.(csv|tsv|txt)$/i;
+const SHEET_EXT = /\.(xlsx|xlsm|xls|ods)$/i;
 
 export interface Workbook {
 	sheets: string[];
@@ -19,6 +22,8 @@ export async function readSpreadsheet(file: File): Promise<Workbook> {
 		const grid = parseDelimited(text, /\.tsv$/i.test(file.name) ? "tab" : sniffDelimiter(text));
 		return { sheets: ["Sheet1"], read: () => grid };
 	}
+	// Anything else (a picture, a PDF) would be read as rows of nonsense rather than refused.
+	if (!SHEET_EXT.test(file.name)) throw new UserError(tr().couldntReadFile);
 	const XLSX = await import("xlsx");
 	// Dates without an explicit format follow Vietnamese convention (dd/mm/yyyy) instead of US m/d/yy.
 	const wb = XLSX.read(buffer, { type: "array", dense: true, cellDates: true, dateNF: "dd/mm/yyyy" });
@@ -59,19 +64,11 @@ function sniffDelimiter(text: string): Delimiter {
 	return counts[0][1] > 0 ? counts[0][0] : "line";
 }
 
-/**
- * Pasted text: tabs mean it came from Excel/Sheets; otherwise one value per line,
- * since names may legitimately contain commas.
- */
-export function resolvePasteDelimiter(text: string, delimiter: Delimiter): Exclude<Delimiter, "auto"> {
-	if (delimiter !== "auto") return delimiter;
-	return text.includes("\t") ? "tab" : "line";
-}
 
 /** RFC 4180-style parser (quoted fields, embedded newlines, doubled quotes). */
 export function parseDelimited(text: string, delimiter: Delimiter): string[][] {
 	const src = text.replace(/^﻿/, "");
-	const mode = delimiter === "auto" ? resolvePasteDelimiter(src, "auto") : delimiter;
+	const mode = delimiter === "auto" ? (src.includes("\t") ? "tab" : "line") : delimiter;
 	if (mode === "line") {
 		return src
 			.split(/\r?\n/)
@@ -118,11 +115,15 @@ const HEADER_HINTS =
 
 export function guessHasHeader(grid: string[][], kind: DataSource["kind"]): boolean {
 	if (!grid.length) return false;
-	if (kind === "file") return grid.length > 1;
-	return grid[0].some((c) => HEADER_HINTS.test(c.trim()));
+	const first = grid[0];
+	const hinted = first.some((c) => HEADER_HINTS.test(c.trim()));
+	// A file with several columns nearly always starts with headings; a single column of names does not,
+	// unless its first line reads like one ("Name", "Họ tên").
+	if (kind === "file") return grid.length > 1 && (first.filter((c) => c.trim()).length > 1 || hinted);
+	return hinted;
 }
 
-const columnLetter = (i: number): string => {
+export const columnLetter = (i: number): string => {
 	let s = "";
 	let n = i + 1;
 	while (n > 0) {
@@ -134,7 +135,8 @@ const columnLetter = (i: number): string => {
 };
 
 export function buildTable(grid: string[][], hasHeader: boolean): Table {
-	const nonEmpty = grid.filter((r) => r.some((c) => c !== ""));
+	// Cells typed into the grid can hold stray spaces; a row of only spaces is no card.
+	const nonEmpty = grid.map((r) => r.map((c) => c.trim())).filter((r) => r.some((c) => c !== ""));
 	const width = nonEmpty.reduce((w, r) => {
 		let last = r.length - 1;
 		while (last >= 0 && r[last] === "") last--;
@@ -146,7 +148,7 @@ export function buildTable(grid: string[][], hasHeader: boolean): Table {
 	const columns: string[] = [];
 	const used = new Set<string>();
 	for (let i = 0; i < width; i++) {
-		let name = (header[i] ?? "").replace(/[{}]/g, "").replace(/\s+/g, " ").trim() || `Column ${columnLetter(i)}`;
+		let name = (header[i] ?? "").replace(/[{}]/g, "").replace(/\s+/g, " ").trim() || tr().columnName(columnLetter(i));
 		const base = name;
 		let n = 2;
 		while (used.has(name.toLowerCase())) name = `${base} (${n++})`;

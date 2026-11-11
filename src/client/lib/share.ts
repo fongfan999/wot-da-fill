@@ -1,4 +1,5 @@
-import { getLang, tr } from "./i18n";
+import { UserError } from "./errors";
+import { tr } from "./i18n";
 import type { CustomFont, Field, SharedTemplateConfig, TemplateImage } from "../types";
 import { registerCustomFont } from "./fonts";
 import { sanitizeField } from "./fields";
@@ -24,9 +25,9 @@ export async function shareTemplate(
 	for (const f of used) form.append("font", f.blob, f.id);
 
 	const res = await fetch("/api/templates", { method: "POST", body: form });
-	const body = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
-	// The server answers in English; people see the message in their own language.
-	if (!res.ok || !body.id) throw new Error(getLang() === "en" && body.error ? body.error : tr().shareFailed);
+	const body = (await res.json().catch(() => ({}))) as { id?: string; code?: string };
+	// The server says why with a short code; people read the reason in their own language.
+	if (!res.ok || !body.id) throw new UserError(tr().shareErrors[body.code ?? ""] ?? tr().shareFailed);
 	return `${location.origin}/t/${body.id}`;
 }
 
@@ -39,18 +40,18 @@ export interface LoadedTemplate {
 
 export async function loadSharedTemplate(id: string): Promise<LoadedTemplate> {
 	const res = await fetch(`/api/templates/${encodeURIComponent(id)}`);
-	if (res.status === 404) throw new Error(tr().sharedMissing);
-	if (!res.ok) throw new Error(tr().sharedCouldntLoad);
+	if (res.status === 404) throw new UserError(tr().sharedMissing);
+	if (!res.ok) throw new UserError(tr().sharedCouldntLoad);
 	const config = (await res.json()) as SharedTemplateConfig;
 
 	const imageRes = await fetch(`/api/templates/${encodeURIComponent(id)}/image`);
-	if (!imageRes.ok) throw new Error(tr().sharedImageMissing);
-	const image = await loadTemplateImage(await imageRes.blob(), String(config.image?.name ?? "template"));
+	if (!imageRes.ok) throw new UserError(tr().sharedImageMissing);
+	const image = await loadTemplateImage(await imageRes.blob(), String(config.image?.name ?? tr().cardsBase));
 
 	const customFonts: CustomFont[] = await Promise.all(
 		(Array.isArray(config.fonts) ? config.fonts : []).map(async (f) => {
 			const r = await fetch(`/api/templates/${encodeURIComponent(id)}/fonts/${encodeURIComponent(f.id)}`);
-			if (!r.ok) throw new Error(tr().sharedFontMissing(String(f.family)));
+			if (!r.ok) throw new UserError(tr().sharedFontMissing(String(f.family)));
 			const font: CustomFont = { id: String(f.id), family: String(f.family), fileName: String(f.fileName), blob: await r.blob() };
 			await registerCustomFont(font);
 			return font;

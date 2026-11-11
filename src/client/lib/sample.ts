@@ -217,10 +217,8 @@ function drawBadge(ctx: Ctx, lang: ExampleLang) {
 	const c = EXAMPLE[lang].badge;
 	const ink = "#16181d";
 
-	// Rounded corners: the picture is a badge, so outside them stays transparent.
-	ctx.beginPath();
-	ctx.roundRect(0, 0, W, H, 5 * cq);
-	ctx.clip();
+	// A full rectangle, like any design someone would print and cut: no transparent corners in the
+	// cards. The home page rounds its picture of it for show.
 	ctx.fillStyle = "#fbfaf6";
 	ctx.fillRect(0, 0, W, H);
 	ctx.fillStyle = "#e4572e";

@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { CURATED_FAMILIES, closestVariant, loadCatalog, previewFamily, type GoogleFont } from "../lib/fonts";
 import { useT } from "../lib/i18n";
 import type { CustomFont, FontRef } from "../types";
 import { Button, Icon, pickFile } from "./ui";
+
+/** How many search results are listed; past this, the hint says to type more. */
+const MAX_MATCHES = 60;
 
 interface Option {
 	key: string;
@@ -32,6 +35,14 @@ export function FontPicker({
 	const [active, setActive] = useState(0);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const listRef = useRef<HTMLUListElement>(null);
+	const popRef = useRef<HTMLDivElement>(null);
+	const buttonRef = useRef<HTMLButtonElement>(null);
+	const valueId = useId();
+	/** Closes the list and hands the keyboard back to the button, so it never falls to the page behind. */
+	const close = () => {
+		setOpen(false);
+		buttonRef.current?.focus();
+	};
 	const [currentAlias, setCurrentAlias] = useState<string | null>(null);
 
 	useEffect(() => {
@@ -42,6 +53,11 @@ export function FontPicker({
 	useEffect(() => {
 		setCurrentAlias(value.source === "custom" ? value.family : previewFamily(value.family));
 	}, [value.family, value.source]);
+
+	// The list opens inside the panel, which scrolls: bring all of it into view, again once the fonts have loaded.
+	useEffect(() => {
+		if (open) popRef.current?.scrollIntoView({ block: "nearest" });
+	}, [open, catalog]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -69,10 +85,11 @@ export function FontPicker({
 		const matches = catalog
 			.filter((f) => f.family.toLowerCase().includes(q))
 			.sort((a, b) => rank(a) - rank(b))
-			.slice(0, 60);
+			.slice(0, MAX_MATCHES);
 		return [...custom, ...matches.map(toOption)];
 	}, [catalog, customFonts, query]);
 
+	const custom = options.filter((o) => o.source === "custom").length;
 	useEffect(() => setActive(0), [query]);
 	useEffect(() => {
 		listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
@@ -85,7 +102,7 @@ export function FontPicker({
 			const v = o.google ? closestVariant(o.google, value.weight, value.italic) : { weight: 400, italic: false };
 			onChange({ family: o.family, source: "google", ...v });
 		}
-		setOpen(false);
+		close();
 		setQuery("");
 	};
 
@@ -95,27 +112,34 @@ export function FontPicker({
 		const font = await onUpload(file);
 		if (font) {
 			onChange({ family: font.family, source: "custom", weight: 400, italic: false });
-			setOpen(false);
+			close();
 		}
 	};
 
 	return (
-		<div className="wf-font" ref={rootRef}>
+		<div
+			className="wf-font"
+			ref={rootRef}
+			// Tabbing out of the list closes it, as clicking outside does.
+			onBlur={(e) => open && e.relatedTarget && !e.currentTarget.contains(e.relatedTarget as Node) && setOpen(false)}
+		>
 			<button
+				ref={buttonRef}
 				type="button"
 				className="wf-font-current"
 				aria-haspopup="listbox"
 				aria-expanded={open}
-				aria-labelledby={labelId}
+				// Read as "Font, Great Vibes": the label and then the font in use.
+				aria-labelledby={labelId ? `${labelId} ${valueId}` : undefined}
 				onClick={() => setOpen((o) => !o)}
 			>
-				<span className="wf-font-name" style={currentAlias ? { fontFamily: `"${currentAlias}", var(--font-sans)` } : undefined}>
+				<span id={valueId} className="wf-font-name" title={value.family} style={currentAlias ? { fontFamily: `"${currentAlias}", var(--font-sans)` } : undefined}>
 					{value.family}
 				</span>
 				<Icon name="chevronDown" size={16} />
 			</button>
 			{open && (
-				<div className="wf-font-pop">
+				<div className="wf-font-pop" ref={popRef}>
 					<input
 						autoFocus
 						className="wf-input"
@@ -135,14 +159,24 @@ export function FontPicker({
 								e.preventDefault();
 								choose(options[active]);
 							} else if (e.key === "Escape") {
-								setOpen(false);
+								e.stopPropagation();
+								close();
 							}
 						}}
 					/>
-					<p className="wf-hint">{query ? t.fontsFound(options.length) : t.curatedFonts}</p>
+					<p className="wf-hint">{query ? t.fontsFound(options.length, options.length - custom >= MAX_MATCHES) : t.curatedFonts}</p>
+					{!catalog && (
+						<p className="wf-font-empty" role="status">
+							{t.loadingFonts}
+						</p>
+					)}
+					{catalog && options.length === 0 && (
+						<p className="wf-font-empty" role="status">
+							{t.noFontCalled(query)}
+						</p>
+					)}
 					<ul className="wf-font-list" role="listbox" ref={listRef} aria-label={t.fonts}>
-						{!catalog && <li className="wf-table-more">{t.loadingFonts}</li>}
-						{catalog && options.length === 0 && <li className="wf-table-more">{t.noFontCalled(query)}</li>}
+
 						{options.map((o, i) => (
 							<FontRow
 								key={o.key}
@@ -203,7 +237,7 @@ function FontRow({
 			data-index={index}
 			aria-selected={selected}
 			className="wf-font-row"
-			style={active && !selected ? { background: "var(--paper-sunk)" } : undefined}
+			data-active={active || undefined}
 			onClick={onPick}
 			onPointerMove={onHover}
 		>

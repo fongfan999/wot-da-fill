@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { useLang, useT, type Lang } from "../lib/i18n";
+import { tr, useLang, useT, type Lang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
 import { LOGO } from "../lib/logo";
 
@@ -108,10 +108,13 @@ export function ProductMark({ size = 26 }: { size?: number }) {
  * editor can clear its work with Undo; a middle or Cmd click still opens the home page in a new tab.
  */
 export function HomeLink({ onClick }: { onClick?: () => void }) {
+	const t = useT();
 	return (
 		<a
 			className="wf-home-link"
 			href="/"
+			// In the editor the logo clears the work (with Undo), so it says so before it is pressed.
+			title={onClick ? t.startOver : undefined}
 			onClick={(e) => {
 				if (!onClick || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
 				e.preventDefault();
@@ -192,13 +195,16 @@ export function IconButton({
 	);
 }
 
-export function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+/** A titled block of the side panel. Without a title (a tab already names it), only its actions show, on the right. */
+export function Section({ title, aside, children }: { title?: string; aside?: ReactNode; children: ReactNode }) {
 	return (
 		<section className="wf-section">
-			<header className="wf-section-head">
-				<h2 className="wf-section-title">{title}</h2>
-				{aside}
-			</header>
+			{(title || aside) && (
+				<header className="wf-section-head">
+					{title && <h2 className="wf-section-title">{title}</h2>}
+					{aside && <div className="wf-section-aside">{aside}</div>}
+				</header>
+			)}
 			{children}
 		</section>
 	);
@@ -218,13 +224,28 @@ export function Segmented<T extends string>({
 	full?: boolean;
 }) {
 	return (
-		<div className={cx("wf-seg", full && "wf-seg-full")} role="radiogroup" aria-label={label}>
+		<div
+			className={cx("wf-seg", full && "wf-seg-full")}
+			role="radiogroup"
+			aria-label={label}
+			// One stop for the Tab key; the arrow keys choose, as with any group of radio buttons.
+			onKeyDown={(e) => {
+				const by = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+				if (!by) return;
+				e.preventDefault();
+				const at = Math.max(0, options.findIndex((o) => o.value === value));
+				const next = (at + by + options.length) % options.length;
+				onChange(options[next].value);
+				(e.currentTarget.children[next] as HTMLElement | undefined)?.focus();
+			}}
+		>
 			{options.map((o) => (
 				<button
 					key={o.value}
 					type="button"
 					role="radio"
 					aria-checked={o.value === value}
+					tabIndex={o.value === value ? 0 : -1}
 					aria-label={o.title}
 					title={o.title}
 					onClick={() => onChange(o.value)}
@@ -346,7 +367,20 @@ export function Select({
 	);
 }
 
-export function ColorField({ label, value, onChange }: { label: string; value: string; onChange(v: string): void }) {
+/** A colour picker with its code. `swatches` adds one-click colours beside it (the design's own, for text). */
+export function ColorField({
+	label,
+	value,
+	onChange,
+	swatches = [],
+	swatchesLabel,
+}: {
+	label: string;
+	value: string;
+	onChange(v: string): void;
+	swatches?: string[];
+	swatchesLabel?: string;
+}) {
 	const id = useId();
 	const t = useT();
 	const [draft, setDraft] = useState<string | null>(null);
@@ -355,21 +389,39 @@ export function ColorField({ label, value, onChange }: { label: string; value: s
 			<label className="wf-label" htmlFor={id}>
 				{label}
 			</label>
-			<span className="wf-color">
-				<input id={id} type="color" value={value} onChange={(e) => onChange(e.target.value)} />
-				<input
-					className="wf-color-hex"
-					value={draft ?? value}
-					maxLength={7}
-					spellCheck={false}
-					aria-label={t.colourCode}
-					onChange={(e) => {
-						setDraft(e.target.value);
-						if (/^#[0-9a-f]{6}$/i.test(e.target.value)) onChange(e.target.value.toLowerCase());
-					}}
-					onBlur={() => setDraft(null)}
-				/>
-			</span>
+			<div className="wf-color-row">
+				<span className="wf-color">
+					<input id={id} type="color" value={value} onChange={(e) => onChange(e.target.value)} />
+					<input
+						className="wf-color-hex"
+						value={draft ?? value}
+						maxLength={7}
+						spellCheck={false}
+						aria-label={t.colourCode}
+						onChange={(e) => {
+							setDraft(e.target.value);
+							if (/^#[0-9a-f]{6}$/i.test(e.target.value)) onChange(e.target.value.toLowerCase());
+						}}
+						onBlur={() => setDraft(null)}
+					/>
+				</span>
+				{swatches.length > 0 && (
+					<div className="wf-swatches" role="group" aria-label={swatchesLabel}>
+						{swatches.map((c) => (
+							<button
+								key={c}
+								type="button"
+								className="wf-swatch"
+								style={{ background: c }}
+								title={swatchesLabel ? `${swatchesLabel}: ${c}` : c}
+								aria-label={swatchesLabel ? `${swatchesLabel}: ${c}` : c}
+								aria-pressed={c === value.toLowerCase()}
+								onClick={() => onChange(c)}
+							/>
+						))}
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }
@@ -410,6 +462,8 @@ export function FileDrop({
 			onDragLeave={() => setOver(false)}
 			onDrop={(e) => {
 				e.preventDefault();
+				// The page around it takes drops too; this one is already handled.
+				e.stopPropagation();
 				setOver(false);
 				const file = e.dataTransfer.files[0];
 				if (file) onFile(file);
@@ -442,34 +496,67 @@ export function pickFile(accept: string): Promise<File | null> {
 	});
 }
 
-export type StepState = "done" | "current" | "todo";
-
-export function Steps({
-	steps,
-	onSelect,
+/**
+ * Tabs across the top of a panel. The panel itself takes `role="tabpanel"`, id `${idPrefix}-panel`
+ * and `aria-labelledby` set to `${idPrefix}-tab-${value}`. Arrow keys move between tabs.
+ */
+export function Tabs<T extends string>({
+	value,
+	tabs,
+	onChange,
+	label,
+	idPrefix,
 }: {
-	steps: { label: string; state: StepState; disabled?: boolean }[];
-	onSelect(index: number): void;
+	value: T;
+	/** `dot` marks a tab that still needs something; its text is read out instead of shown. */
+	tabs: { value: NoInfer<T>; label: string; count?: number; dot?: string }[];
+	onChange(v: NoInfer<T>): void;
+	label: string;
+	idPrefix: string;
 }) {
-	const t = useT();
+	const list = useRef<HTMLDivElement>(null);
+	const move = (by: number) => {
+		const i = tabs.findIndex((tab) => tab.value === value);
+		const next = tabs[(i + by + tabs.length) % tabs.length];
+		onChange(next.value);
+		list.current?.querySelector<HTMLButtonElement>(`#${idPrefix}-tab-${next.value}`)?.focus();
+	};
 	return (
-		<ol className="wf-steps" aria-label={t.stepsLabel}>
-			{steps.map((s, i) => (
-				<li key={s.label}>
-					{i > 0 && <span className="wf-step-sep" aria-hidden="true" />}
-					<button
-						type="button"
-						className={`wf-step wf-step-${s.state}`}
-						aria-current={s.state === "current" ? "step" : undefined}
-						disabled={s.disabled}
-						onClick={() => onSelect(i)}
-					>
-						<span className="wf-step-dot">{s.state === "done" ? <Icon name="check" size={14} label={t.done} /> : i + 1}</span>
-						<span className="wf-step-label">{s.label}</span>
-					</button>
-				</li>
+		<div
+			ref={list}
+			className="wf-tabs"
+			role="tablist"
+			aria-label={label}
+			onKeyDown={(e) => {
+				if (e.key === "ArrowRight") move(1);
+				else if (e.key === "ArrowLeft") move(-1);
+				else return;
+				e.preventDefault();
+			}}
+		>
+			{tabs.map((tab) => (
+				<button
+					key={tab.value}
+					type="button"
+					role="tab"
+					id={`${idPrefix}-tab-${tab.value}`}
+					className="wf-tab"
+					aria-selected={tab.value === value}
+					aria-controls={`${idPrefix}-panel`}
+					tabIndex={tab.value === value ? 0 : -1}
+					onClick={() => onChange(tab.value)}
+				>
+					{tab.label}
+					{tab.count != null && <span className="wf-tab-count">{tab.count}</span>}
+					{tab.dot && (
+						<>
+							<span className="wf-tab-dot" aria-hidden="true" />
+							<span className="wf-sr">, {tab.dot}</span>
+						</>
+					)}
+				</button>
 			))}
-		</ol>
+		</div>
 	);
 }
 
@@ -569,9 +656,14 @@ export function Dialog({
 				e.preventDefault();
 				onClose();
 			}}
+			// A second Escape in a row closes a dialog whatever the page says; if this one is still wanted, it reopens.
+			onClose={(e) => {
+				const d = e.currentTarget;
+				if (d.isConnected && !d.open) d.showModal();
+			}}
 		>
 			<header className="wf-dialog-head">
-				<h2 className="wf-dialog-title" id={id}>
+				<h2 className="wf-dialog-title" id={id} aria-live="polite">
 					{title}
 				</h2>
 				<IconButton icon="x" label={closeLabel ?? t.close} onClick={onClose} />
@@ -581,41 +673,75 @@ export function Dialog({
 	);
 }
 
-/** A small popover menu behind an icon button. */
-export function Menu({ label, items }: { label: string; items: { label: string; icon: IconName | ReactNode; onClick(): void }[] }) {
+export type MenuItem = { label: string; icon: IconName | ReactNode; onClick(): void } | "separator";
+
+/**
+ * A small popover menu behind an icon button. `"separator"` rules off a group. Opening it puts the
+ * keyboard on the first item; the arrow keys, Home and End move between items, and Escape closes
+ * it and hands the keyboard back to the button.
+ */
+export function Menu({ label, items }: { label: string; items: MenuItem[] }) {
 	const [open, setOpen] = useState(false);
 	const root = useRef<HTMLDivElement>(null);
+	const pop = useRef<HTMLDivElement>(null);
+	const options = () => [...(pop.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])];
+	const close = (refocus: boolean) => {
+		setOpen(false);
+		if (refocus) root.current?.querySelector<HTMLButtonElement>(":scope > button")?.focus();
+	};
 	useEffect(() => {
 		if (!open) return;
-		const close = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false);
-		const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-		document.addEventListener("pointerdown", close);
-		document.addEventListener("keydown", esc);
-		return () => {
-			document.removeEventListener("pointerdown", close);
-			document.removeEventListener("keydown", esc);
-		};
+		options()[0]?.focus();
+		const outside = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false);
+		document.addEventListener("pointerdown", outside);
+		return () => document.removeEventListener("pointerdown", outside);
 	}, [open]);
 	return (
-		<div className="wf-menu" ref={root}>
+		<div
+			className="wf-menu"
+			ref={root}
+			onKeyDown={(e) => {
+				if (!open) return;
+				const all = options();
+				const at = all.indexOf(document.activeElement as HTMLButtonElement);
+				const go = (i: number) => {
+					e.preventDefault();
+					all[(i + all.length) % all.length]?.focus();
+				};
+				if (e.key === "Escape") {
+					e.preventDefault();
+					e.stopPropagation();
+					close(true);
+				} else if (e.key === "ArrowDown") go(at + 1);
+				else if (e.key === "ArrowUp") go(at - 1);
+				else if (e.key === "Home") go(0);
+				else if (e.key === "End") go(all.length - 1);
+				else if (e.key === "Tab") setOpen(false);
+			}}
+		>
 			<IconButton icon="more" label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} />
 			{open && (
-				<div className="wf-menu-pop" role="menu">
-					{items.map((item) => (
-						<button
-							key={item.label}
-							type="button"
-							role="menuitem"
-							className="wf-menu-item"
-							onClick={() => {
-								setOpen(false);
-								item.onClick();
-							}}
-						>
-							{typeof item.icon === "string" ? <Icon name={item.icon as IconName} /> : item.icon}
-							{item.label}
-						</button>
-					))}
+				<div className="wf-menu-pop" role="menu" aria-label={label} ref={pop}>
+					{items.map((item, i) =>
+						item === "separator" ? (
+							<div key={`sep-${i}`} className="wf-menu-sep" role="separator" />
+						) : (
+							<button
+								key={item.label}
+								type="button"
+								role="menuitem"
+								tabIndex={-1}
+								className="wf-menu-item"
+								onClick={() => {
+									close(true);
+									item.onClick();
+								}}
+							>
+								{typeof item.icon === "string" ? <Icon name={item.icon as IconName} /> : item.icon}
+								{item.label}
+							</button>
+						),
+					)}
 				</div>
 			)}
 		</div>
@@ -699,8 +825,8 @@ export function LangSwitch() {
 		<button
 			type="button"
 			className="wf-iconbtn wf-langbtn"
-			aria-label={`${t.language}: ${t.langName[lang]}. ${t.langName[other]}`}
-			title={t.langName[other]}
+			aria-label={`${t.language}: ${t.langName[lang]}. ${t.switchTo(t.langName[other])}`}
+			title={t.switchTo(t.langName[other])}
 			onClick={() => setLang(other)}
 		>
 			<Flag lang={lang} size={22} />
@@ -735,7 +861,7 @@ export const FEEDBACK_EMAIL = "hey@wotdafong.dev";
 
 /** A mailto link with a subject and a short template, so a report arrives with the browser it happened in. */
 export function feedbackHref(subject: string, body: string) {
-	const text = `${body}\n\n---\n${navigator.userAgent}`;
+	const text = `${body}\n\n---\n${tr().feedbackBrowser}\n${navigator.userAgent}`;
 	return `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
 }
 

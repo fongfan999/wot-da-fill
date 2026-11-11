@@ -1,3 +1,4 @@
+import { UserError } from "./errors";
 import { tr } from "./i18n";
 import type { CustomFont, FontRef } from "../types";
 
@@ -30,7 +31,6 @@ export const CURATED_FAMILIES = [
 	"EB Garamond",
 	"Lora",
 	"Prata",
-	"Noto Serif Display",
 	"Be Vietnam Pro",
 	"Montserrat",
 	"Josefin Sans",
@@ -71,10 +71,10 @@ export function registerGoogleFont(family: string, weight: number, italic: boole
 			const spec = `${encodeURIComponent(family).replace(/%20/g, "+")}:ital,wght@${italic ? 1 : 0},${weight}`;
 			const url = `https://fonts.googleapis.com/css2?family=${spec}&display=block${text ? `&text=${encodeURIComponent(text)}` : ""}`;
 			const res = await fetch(url);
-			if (!res.ok) throw new Error(tr().fontNoStyle(family, weight, italic));
+			if (!res.ok) throw new UserError(tr().fontNoStyle(family, weight, italic));
 			const css = await res.text();
 			const faces = parseFontFaces(css, alias);
-			if (!faces.length) throw new Error(tr().fontUnreadable(family));
+			if (!faces.length) throw new UserError(tr().fontUnreadable(family));
 			for (const face of faces) document.fonts.add(face);
 		})();
 		faceRequests.set(key, req);
@@ -120,7 +120,7 @@ export function closestVariant(font: GoogleFont, weight: number, italic: boolean
 }
 
 export async function addCustomFont(file: File, existing: CustomFont[]): Promise<CustomFont> {
-	const base = file.name.replace(/\.(ttf|otf|woff2?|)$/i, "").trim() || "Custom font";
+	const base = file.name.replace(/\.(ttf|otf|woff2?|)$/i, "").trim() || tr().yourFont;
 	let family = base;
 	let n = 2;
 	while (existing.some((f) => f.family === family)) family = `${base} ${n++}`;
@@ -140,7 +140,7 @@ export async function registerCustomFont(font: CustomFont): Promise<void> {
 	if (customRegistered.has(font.id)) return;
 	const face = new FontFace(font.family, await font.blob.arrayBuffer());
 	await face.load().catch(() => {
-		throw new Error(tr().notAFont(font.fileName));
+		throw new UserError(tr().notAFont(font.fileName));
 	});
 	document.fonts.add(face);
 	customRegistered.add(font.id);

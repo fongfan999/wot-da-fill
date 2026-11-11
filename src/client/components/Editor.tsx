@@ -3,6 +3,7 @@ import { clampBox } from "../lib/fields";
 import { ensureFont } from "../lib/fonts";
 import { useT } from "../lib/i18n";
 import { renderCard } from "../lib/render";
+import { Icon } from "./ui";
 import type { Box, Field, TemplateImage } from "../types";
 
 type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
@@ -16,6 +17,8 @@ interface Drag {
 	startY: number;
 	startBox: Box;
 	moved: boolean;
+	/** Started by a finger, which needs to travel further than a mouse before it counts as drawing a box. */
+	touch: boolean;
 }
 
 export interface EditorProps {
@@ -33,15 +36,31 @@ export interface EditorProps {
 	onOpen(id: string): void;
 	onChangeBox(id: string, box: Box): void;
 	onCreate(box: Box): void;
+	/** Shown beside the mouse over empty parts of the design, to teach that dragging there adds a box. Null hides it. */
+	drawHint: string | null;
 }
 
 const SNAP_PX = 6;
 
-export function Editor({ image, fields, texts, selectedId, showGuides, labels, flagged, onSelect, onOpen, onChangeBox, onCreate }: EditorProps) {
+export function Editor({
+	image,
+	fields,
+	texts,
+	selectedId,
+	showGuides,
+	labels,
+	flagged,
+	onSelect,
+	onOpen,
+	onChangeBox,
+	onCreate,
+	drawHint,
+}: EditorProps) {
 	const t = useT();
 	const stageRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const overlayRef = useRef<HTMLDivElement>(null);
+	const hintRef = useRef<HTMLDivElement>(null);
 	const [stage, setStage] = useState({ w: 0, h: 0 });
 	const [fontTick, setFontTick] = useState(0);
 	const [overflow, setOverflow] = useState<Set<string>>(new Set());
@@ -121,15 +140,33 @@ export function Editor({ image, fields, texts, selectedId, showGuides, labels, f
 		height: `${(b.h / image.height) * 100}%`,
 	});
 
-	const begin = (e: ReactPointerEvent, d: Omit<Drag, "startX" | "startY" | "moved">) => {
+	// The hint follows the mouse by direct style changes, so moving the mouse never re-renders the editor.
+	const moveHint = (e: ReactPointerEvent | null) => {
+		const hint = hintRef.current;
+		const overlay = overlayRef.current;
+		if (!hint || !overlay) return;
+		const show = !!e && e.pointerType === "mouse" && e.target === overlay && !drag.current;
+		hint.toggleAttribute("data-show", show);
+		if (!show) return;
+		const r = overlay.getBoundingClientRect();
+		const x = e.clientX - r.left;
+		const y = e.clientY - r.top;
+		// Keep it inside the design: flip to the left of the mouse near the right edge, above it near the bottom.
+		const left = x + 14 + hint.offsetWidth > r.width ? x - 10 - hint.offsetWidth : x + 14;
+		const top = y + 18 + hint.offsetHeight > r.height ? y - 10 - hint.offsetHeight : y + 18;
+		hint.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+	};
+
+	const begin = (e: ReactPointerEvent, d: Omit<Drag, "startX" | "startY" | "moved" | "touch">) => {
 		if (e.button !== 0) return;
+		moveHint(null);
 		e.stopPropagation();
 		e.preventDefault();
 		// preventDefault stops the browser moving focus, so do it ourselves: otherwise arrow/delete
 		// keys would keep editing whatever text box was focused before (e.g. the pasted list).
 		overlayRef.current?.focus({ preventScroll: true });
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-		drag.current = { ...d, startX: e.clientX, startY: e.clientY, moved: false };
+		drag.current = { ...d, startX: e.clientX, startY: e.clientY, moved: false, touch: e.pointerType === "touch" };
 	};
 
 	const overlayRect = () => overlayRef.current!.getBoundingClientRect();
@@ -142,7 +179,7 @@ export function Editor({ image, fields, texts, selectedId, showGuides, labels, f
 
 	const onPointerMove = (e: ReactPointerEvent) => {
 		const d = drag.current;
-		if (!d) return;
+		if (!d) return moveHint(e);
 		const dxPx = e.clientX - d.startX;
 		const dyPx = e.clientY - d.startY;
 		if (!d.moved && Math.hypot(dxPx, dyPx) < 3) return;
@@ -198,7 +235,8 @@ export function Editor({ image, fields, texts, selectedId, showGuides, labels, f
 		if (d.mode === "move" && d.id && !d.moved) onOpen(d.id);
 		if (d.mode === "draw") {
 			setDraft(null);
-			if (draft && draft.w * view.k > 8 && draft.h * view.k > 8) onCreate(clampBox(draft, image.width, image.height));
+			const least = d.touch ? 24 : 8;
+			if (draft && draft.w * view.k > least && draft.h * view.k > least) onCreate(clampBox(draft, image.width, image.height));
 			else onSelect(null);
 		}
 	};
@@ -218,6 +256,7 @@ export function Editor({ image, fields, texts, selectedId, showGuides, labels, f
 					onPointerMove={onPointerMove}
 					onPointerUp={onPointerUp}
 					onPointerCancel={onPointerUp}
+					onPointerLeave={() => moveHint(null)}
 				>
 					{fields.map((f, i) => {
 						const selected = f.id === selectedId;
@@ -232,9 +271,15 @@ export function Editor({ image, fields, texts, selectedId, showGuides, labels, f
 									begin(e, { mode: "move", id: f.id, startBox: f.box });
 								}}
 							>
+								{/* Only on screen, never on the cards: an empty box would otherwise show nothing at all. */}
+								{!f.text.trim() && <span className="wf-box-empty">{t.emptyBox}</span>}
+								{/* The number always shows; what the box says joins it when the box is selected, pointed at or too long. */}
 								<span className="wf-box-tag">
-									{labels[i]}
-									{tooLong ? ` · ${t.tooLongTag}` : ""}
+									{i + 1}
+									<span className="wf-box-tag-rest">
+										{labels[i].slice(String(i + 1).length)}
+										{tooLong ? ` · ${t.tooLongTag}` : ""}
+									</span>
 								</span>
 								{selected &&
 									HANDLES.map((hd) => (
@@ -250,6 +295,12 @@ export function Editor({ image, fields, texts, selectedId, showGuides, labels, f
 					{draft && <div className="wf-box wf-box-drafting" style={pct(draft)} />}
 					{guides.v && <div className="wf-guide wf-guide-v" />}
 					{guides.h && <div className="wf-guide wf-guide-h" />}
+					{drawHint && (
+						<div ref={hintRef} className="wf-draw-hint" aria-hidden="true">
+							<Icon name="plus" size={16} />
+							{drawHint}
+						</div>
+					)}
 				</div>
 			</div>
 		</div>
@@ -266,8 +317,16 @@ function normalize(b: Box, width: number, height: number): Box {
 		y += h;
 		h = -h;
 	}
-	x = Math.max(0, x);
-	y = Math.max(0, y);
+	if (x < 0) {
+		w += x;
+		x = 0;
+	}
+	if (y < 0) {
+		h += y;
+		y = 0;
+	}
+	w = Math.max(0, w);
+	h = Math.max(0, h);
 	return { x, y, w: Math.min(w, width - x), h: Math.min(h, height - y) };
 }
 

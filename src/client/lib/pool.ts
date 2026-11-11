@@ -102,6 +102,15 @@ export class EncoderPool {
 	}
 }
 
+/**
+ * How many workers a design of this size can have. Each holds the card's pixels a few times over
+ * while it works, and they all share the tab's memory, so a very large design gets fewer of them.
+ */
+export function poolSizeFor(width: number, height: number): number {
+	const perWorker = width * height * 4 * 3;
+	return Math.max(1, Math.min(defaultPoolSize(), Math.floor(1.2e9 / perWorker)));
+}
+
 export function defaultPoolSize(): number {
 	const cores = navigator.hardwareConcurrency || 4;
 	// Each worker holds a WASM heap sized to the largest image; stay modest on memory.

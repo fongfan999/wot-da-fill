@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { generateAll, type GenerateResult, type Job, type Progress as ProgressInfo } from "../lib/generate";
+import { messageOf } from "../lib/errors";
 import { useT, type Strings } from "../lib/i18n";
 import { formatBytes, formatDuration } from "../lib/text";
-import { Button, Dialog, Icon, Notice, Progress } from "./ui";
+import { Button, Dialog, Icon, IconButton, Notice, Progress } from "./ui";
 
 type Params = Omit<Job, "signal" | "onProgress">;
 
@@ -22,14 +23,13 @@ export function GenerateDialog({ params, onClose }: { params: Params; onClose():
 		generateAll({ ...params, signal: ac.signal, onProgress: setProgress })
 			.then((r) => {
 				setResult(r);
-				const url = URL.createObjectURL(r.zip);
-				setZipUrl(url);
-				download(url, r.zipName);
+				// Nothing downloads by itself: the cards are shown first, and saving is the person's choice.
+				setZipUrl(URL.createObjectURL(r.zip));
 			})
 			.catch((err: unknown) => {
 				if (ac.signal.aborted) return;
 				console.error(err);
-				setError(err instanceof Error ? err.message : t.wentWrong);
+				setError(messageOf(err, t.wentWrong));
 			});
 		return () => ac.abort();
 		// Runs once per dialog; params are fixed for its lifetime.
@@ -113,6 +113,9 @@ function Running({ progress, total }: { progress: ProgressInfo | null; total: nu
 function Done({ result, zipUrl, templateSize, onClose }: { result: GenerateResult; zipUrl: string; templateSize: number; onClose(): void }) {
 	const t = useT();
 	const [shown, setShown] = useState(PAGE);
+	const [viewing, setViewing] = useState<number | null>(null);
+	const [detailsOpen, setDetailsOpen] = useState(false);
+	const detailsId = useId();
 	// Object URLs are created and revoked by the same effect so StrictMode's re-run can't leave dead links.
 	const [thumbs, setThumbs] = useState<(GenerateResult["files"][number] & { url: string })[]>([]);
 	useEffect(() => {
@@ -129,11 +132,11 @@ function Done({ result, zipUrl, templateSize, onClose }: { result: GenerateResul
 		<>
 			<div className="wf-ready">
 				<div>
-					<b>{result.zipName}</b>
-					<p className="wf-small wf-muted">{t.downloadStarted}</p>
+					<b title={result.zipName}>{result.zipName}</b>
+					<p className="wf-small wf-muted">{t.zipNote(formatBytes(result.zip.size))}</p>
 				</div>
 				<a className="wf-btn wf-btn-primary wf-btn-lg" href={zipUrl} download={result.zipName}>
-					<Icon name="download" size={20} /> {t.downloadAgain}
+					<Icon name="download" size={20} /> {t.downloadAll}
 				</a>
 			</div>
 			{failedRows.length > 0 && (
@@ -142,11 +145,15 @@ function Done({ result, zipUrl, templateSize, onClose }: { result: GenerateResul
 				</Notice>
 			)}
 			<ul className="wf-thumbs">
-				{thumbs.slice(0, shown).map((thumb) => (
+				{thumbs.slice(0, shown).map((thumb, i) => (
 					<li key={thumb.name}>
-						<a className="wf-thumb" href={thumb.url} download={thumb.name} title={t.saveCard(thumb.name)}>
+						{/* The card opens large; the corner icon saves just this one. */}
+						<button type="button" className="wf-thumb" onClick={() => setViewing(i)} title={t.viewCard(thumb.name)}>
 							<img className="wf-thumb-img" src={thumb.url} alt="" loading="lazy" decoding="async" />
 							<span className="wf-thumb-name">{thumb.name}</span>
+						</button>
+						<a className="wf-thumb-save" href={thumb.url} download={thumb.name} title={t.saveCard(thumb.name)} aria-label={t.saveCard(thumb.name)}>
+							<Icon name="download" size={16} />
 						</a>
 					</li>
 				))}
@@ -156,46 +163,107 @@ function Done({ result, zipUrl, templateSize, onClose }: { result: GenerateResul
 					{t.showMore(thumbs.length - shown)}
 				</Button>
 			)}
+			{viewing !== null && thumbs[viewing] && (
+				<Viewer cards={thumbs} index={viewing} onIndex={setViewing} onClose={() => setViewing(null)} />
+			)}
+			{/* Details and the way back share a row; opened, the details run the full width under it. */}
 			<div className="wf-dialog-actions">
-				<details className="wf-details">
-					<summary>
-						{t.details} <Icon name="chevronDown" size={16} />
-					</summary>
-					<dl className="wf-stats">
-						<div>
-							<dt>{t.statCards}</dt>
-							<dd>
-								{t.num(result.files.length)} · {result.width} × {result.height}px
-							</dd>
-						</div>
-						<div>
-							<dt>{t.statZip}</dt>
-							<dd>{formatBytes(result.zip.size)}</dd>
-						</div>
-						<div>
-							<dt>{t.statEach}</dt>
-							<dd>{t.eachCard(formatBytes(avg), saved)}</dd>
-						</div>
-						<div>
-							<dt>{t.statTook}</dt>
-							<dd>{formatDuration(result.elapsedMs)}</dd>
-						</div>
-					</dl>
-					<p className="wf-small wf-muted" style={{ marginTop: 12 }}>
-						{t.manifestNote}
-					</p>
-				</details>
+				<Button
+					variant="ghost"
+					className="wf-details-toggle"
+					iconRight="chevronDown"
+					aria-expanded={detailsOpen}
+					aria-controls={detailsId}
+					onClick={() => setDetailsOpen((o) => !o)}
+				>
+					{t.details}
+				</Button>
 				<Button onClick={onClose}>{t.backToEditing}</Button>
 			</div>
+			{detailsOpen && (
+				<div className="wf-details" id={detailsId}>
+					<dl className="wf-stats">
+						<dt>{t.statSize}</dt>
+						<dd>
+							{result.width} × {result.height} px
+						</dd>
+						<dt>{t.statZip}</dt>
+						<dd>{formatBytes(result.zip.size)}</dd>
+						<dt>{t.statEach}</dt>
+						<dd>{t.eachCard(formatBytes(avg), saved)}</dd>
+						<dt>{t.statTook}</dt>
+						<dd>{formatDuration(result.elapsedMs)}</dd>
+					</dl>
+					<p className="wf-small wf-muted">{t.manifestNote}</p>
+				</div>
+			)}
 		</>
 	);
 }
 
-function download(url: string, name: string) {
-	const a = document.createElement("a");
-	a.href = url;
-	a.download = name;
-	document.body.append(a);
-	a.click();
-	a.remove();
+/** One card at full size, over everything. Arrow keys step through the cards; Escape goes back to all of them. */
+function Viewer({
+	cards,
+	index,
+	onIndex,
+	onClose,
+}: {
+	cards: { name: string; url: string }[];
+	index: number;
+	onIndex(i: number): void;
+	onClose(): void;
+}) {
+	const t = useT();
+	const ref = useRef<HTMLDialogElement>(null);
+	const card = cards[index];
+	const prev = index > 0 ? () => onIndex(index - 1) : undefined;
+	const next = index < cards.length - 1 ? () => onIndex(index + 1) : undefined;
+
+	// Its own modal, so it sits above the cards dialog and takes the keyboard while open.
+	useEffect(() => {
+		const d = ref.current;
+		if (d && !d.open) d.showModal();
+		return () => d?.close();
+	}, []);
+
+	// At the first or last card an arrow button disappears from under the keyboard; the viewer takes it back.
+	useEffect(() => {
+		if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
+	}, [index]);
+
+	return (
+		<dialog
+			ref={ref}
+			className="wf-viewer"
+			tabIndex={-1}
+			aria-label={card.name}
+			onCancel={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				onClose();
+			}}
+			onKeyDown={(e) => {
+				if (e.key === "ArrowLeft") prev?.();
+				else if (e.key === "ArrowRight") next?.();
+			}}
+			// A click on the dark space around the card closes it, like most photo viewers.
+			onClick={(e) => e.target === e.currentTarget && onClose()}
+		>
+			<header className="wf-viewer-head">
+				<span className="wf-viewer-name">
+					<b>{card.name}</b>
+					<span className="wf-meta">{t.nOfM(index + 1, cards.length)}</span>
+				</span>
+				<a className="wf-btn wf-btn-primary" href={card.url} download={card.name}>
+					<Icon name="download" size={18} /> {t.downloadCard}
+				</a>
+				<IconButton icon="x" label={t.close} onClick={onClose} />
+			</header>
+			<div className="wf-viewer-stage" onClick={(e) => e.target === e.currentTarget && onClose()}>
+				<img src={card.url} alt={card.name} />
+				{prev && <IconButton className="wf-viewer-nav wf-viewer-prev" icon="left" label={t.prevCard} onClick={prev} />}
+				{next && <IconButton className="wf-viewer-nav wf-viewer-next" icon="right" label={t.nextCard} onClick={next} />}
+			</div>
+		</dialog>
+	);
 }

@@ -3,21 +3,51 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Wot Da Fill · personalize a card for every name</title>
+		<title>Wot Da Fill · A card for every name</title>
 		<meta
 			name="description"
-			content="Put every name from a CSV or Excel list onto your invitation design, then download optimized images as one zip. Runs in your browser; your list never leaves your device."
+			content="Add your invitation, certificate or name badge, paste your list of names, and download a finished card for each person. Free, no sign-up, and your list never leaves your device."
 		/>
 		<meta name="color-scheme" content="light dark" />
 		<!-- Set to the chosen theme's paper by the theme setting (lib/theme.ts). -->
 		<meta name="theme-color" content="#f7f5ee" />
+		<!-- Before anything is drawn: the chosen theme (or the system's), so the page never flashes the other one. -->
+		<script>
+			(function () {
+				try {
+					var t = localStorage.getItem("wdf:theme");
+					if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+					document.documentElement.dataset.theme = t;
+					document.querySelector('meta[name="theme-color"]').content = t === "dark" ? "#151713" : "#f7f5ee";
+				} catch (e) {}
+			})();
+		</script>
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<link rel="canonical" href="https://fill.wotda.app/" />
+		<!-- What a shared link shows in chats and on social sites. -->
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Wot Da Fill" />
+		<meta property="og:url" content="https://fill.wotda.app/" />
+		<meta property="og:title" content="Wot Da Fill · A card for every name" />
+		<meta
+			property="og:description"
+			content="Add your invitation, certificate or name badge, paste your list of names, and download a finished card for each person. Free, no sign-up, and your list never leaves your device."
+		/>
+		<meta property="og:image" content="https://fill.wotda.app/og.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="One design, a list of names, and a finished card for every name" />
+		<meta name="twitter:card" content="summary_large_image" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	</head>
 	<body>
 		<div id="root"></div>
-		<noscript>Wot Da Fill needs JavaScript: it draws and compresses every card in your browser.</noscript>
+		<noscript style="display: block; padding: 24px; font-family: system-ui, sans-serif">
+			Wot Da Fill needs JavaScript. Turn it on in your browser settings, then reload this page. / Wot Da Fill cần JavaScript. Hãy bật
+			JavaScript trong cài đặt trình duyệt rồi tải lại trang.
+		</noscript>
 		<script type="module" src="/src/client/main.tsx"></script>
 	</body>
 </html>

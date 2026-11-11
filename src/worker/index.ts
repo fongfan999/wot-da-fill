@@ -23,10 +23,10 @@ const app = new Hono<{ Bindings: CloudflareBindings }>().basePath("/api");
 app.post("/templates", async (c) => {
 	const ip = c.req.header("cf-connecting-ip") ?? "local";
 	const { success } = await c.env.SHARE_LIMITER.limit({ key: ip });
-	if (!success) return c.json({ error: "Too many shares from your network. Try again in a minute." }, 429);
+	if (!success) return c.json({ error: "Too many shares from your network. Try again in a minute.", code: "rate" }, 429);
 
 	const declared = Number(c.req.header("content-length") ?? 0);
-	if (declared > MAX_REQUEST_BYTES) return c.json({ error: "Upload is too large." }, 413);
+	if (declared > MAX_REQUEST_BYTES) return c.json({ error: "Upload is too large.", code: "too-large" }, 413);
 
 	let form: FormData;
 	try {
@@ -45,34 +45,29 @@ app.post("/templates", async (c) => {
 	} catch {
 		return c.json({ error: "Config is not valid JSON." }, 400);
 	}
-	if (
-		!config ||
-		typeof config !== "object" ||
-		config.version !== 1 ||
-		!Array.isArray(config.fields) ||
-		config.fields.length > MAX_FIELDS
-	) {
+	if (!config || typeof config !== "object" || config.version !== 1 || !Array.isArray(config.fields)) {
 		return c.json({ error: "Config has an unexpected shape." }, 400);
 	}
+	if (config.fields.length > MAX_FIELDS) return c.json({ error: `At most ${MAX_FIELDS} text boxes.`, code: "too-many-boxes" }, 400);
 
 	const image = form.get("image");
 	if (!(image instanceof File) || image.size === 0 || image.size > MAX_IMAGE_BYTES) {
-		return c.json({ error: `Design image is missing or larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB.` }, 400);
+		return c.json({ error: `Design image is missing or larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`, code: "too-large" }, 400);
 	}
 	const imageBytes = new Uint8Array(await image.arrayBuffer());
 	const imageType = sniffImage(imageBytes);
-	if (!imageType) return c.json({ error: "Design must be a JPEG, PNG or WebP image." }, 400);
+	if (!imageType) return c.json({ error: "Design must be a JPG, PNG or WebP image.", code: "bad-image" }, 400);
 
 	const fontFiles = form.getAll("font").filter((f): f is File => f instanceof File);
-	if (fontFiles.length > MAX_FONTS) return c.json({ error: `At most ${MAX_FONTS} custom fonts.` }, 400);
+	if (fontFiles.length > MAX_FONTS) return c.json({ error: `At most ${MAX_FONTS} custom fonts.`, code: "too-many-fonts" }, 400);
 	const fonts: { id: string; bytes: Uint8Array; type: string }[] = [];
 	for (const file of fontFiles) {
 		if (!FONT_ID_RE.test(file.name) || file.size > MAX_FONT_BYTES) {
-			return c.json({ error: "A font file is invalid or too large." }, 400);
+			return c.json({ error: "A font file is invalid or too large.", code: "bad-font" }, 400);
 		}
 		const bytes = new Uint8Array(await file.arrayBuffer());
 		const type = sniffFont(bytes);
-		if (!type) return c.json({ error: `"${file.name}" is not a TTF, OTF, WOFF or WOFF2 font.` }, 400);
+		if (!type) return c.json({ error: "A font is not a TTF, OTF, WOFF or WOFF2 file.", code: "bad-font" }, 400);
 		fonts.push({ id: file.name, bytes, type });
 	}
 
