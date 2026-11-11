@@ -7,7 +7,7 @@ import { Button, FileDrop, Icon, LangSwitch, MadeBy, ProductMark, Segmented, typ
 const IMAGES = "image/jpeg,image/png,image/webp";
 const FACT_ICONS: IconName[] = ["people", "ruler", "font", "download"];
 /** How long each name stays before the next one settles onto the card. */
-const STEP_MS = 1400;
+const STEP_MS = 900;
 
 /**
  * The home page (design system HomeScreen): what the product does, how little it takes, and the
@@ -207,7 +207,7 @@ function ExamplePic({
 
 /**
  * The hero picture (design system ExampleDemo): one example with the name on it changing as the
- * list is stepped through. Every 1.4 seconds the next name is highlighted and settles onto the
+ * list is stepped through. Every 0.9 seconds the next name is highlighted and settles onto the
  * card; after the last name it moves on to the next example, until the visitor picks one
  * themselves. It pauses while the pointer is over it and while the tab is hidden, and for anyone
  * who asks for reduced motion it never runs: they see the first name, still.
