@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { EXAMPLE, EXAMPLE_KINDS, exampleExtra, type ExampleKind } from "../lib/example";
 import { useLang, useT, type Lang } from "../lib/i18n";
 import { getShowcase, type Showcase } from "../lib/showcase";
-import { Button, FileDrop, Icon, GitHubLink, LangSwitch, MadeBy, ProductMark, Segmented, ThemeSwitch, type IconName } from "./ui";
+import { Button, FileDrop, Icon, GitHubLink, LangSwitch, HomeLink, MadeBy, Segmented, ThemeSwitch, type IconName } from "./ui";
 
 const IMAGES = "image/jpeg,image/png,image/webp";
 const FACT_ICONS: IconName[] = ["people", "ruler", "download"];
@@ -45,7 +45,7 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 			}}
 		>
 			<header className="wf-home-wrap wf-home-bar">
-				<ProductMark />
+				<HomeLink />
 				<div className="wf-home-bar-end">
 					<LangSwitch />
 					<ThemeSwitch />

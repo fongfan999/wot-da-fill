@@ -16,7 +16,7 @@ import {
 	MadeBy,
 	Menu,
 	Notice,
-	ProductMark,
+	HomeLink,
 	Section,
 	Steps,
 	Toast,
@@ -467,7 +467,7 @@ export function App() {
 	return (
 		<div className="wf-app">
 			<header className="wf-topbar">
-				<ProductMark />
+				<HomeLink onClick={startOver} />
 				<Steps
 					steps={STEPS.map((id) => ({ label: t.steps[id], state: stepState(id) }))}
 					onSelect={(i) => setStep(STEPS[i])}

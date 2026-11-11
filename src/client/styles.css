@@ -138,6 +138,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Brand */
 .wf-product { display: inline-flex; align-items: flex-end; text-decoration: none; }
 .wf-product svg { display: block; width: auto; overflow: visible; }
+.wf-home-link { display: inline-flex; border-radius: var(--radius-sm); }
 /* The mark stands on the lettering's baseline, which sits a little above the bottom of the lettering's box. */
 .wf-product-mark:not(:only-child) { margin-bottom: 1px; }
 .wf-madeby {

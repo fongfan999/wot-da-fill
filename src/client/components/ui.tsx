@@ -102,6 +102,26 @@ export function ProductMark({ size = 26 }: { size?: number }) {
 	);
 }
 
+/**
+ * The logo as a link home. With `onClick`, a plain click runs it instead of loading the page, so the
+ * editor can clear its work with Undo; a middle or Cmd click still opens the home page in a new tab.
+ */
+export function HomeLink({ onClick }: { onClick?: () => void }) {
+	return (
+		<a
+			className="wf-home-link"
+			href="/"
+			onClick={(e) => {
+				if (!onClick || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+				e.preventDefault();
+				onClick();
+			}}
+		>
+			<ProductMark />
+		</a>
+	);
+}
+
 /** The maker credit, the only place the Wot Da Fong mark appears. */
 export function MadeBy() {
 	const t = useT();
