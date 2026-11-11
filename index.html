@@ -22,6 +22,44 @@
 				} catch (e) {}
 			})();
 		</script>
+		<!--
+			On the home page: start fetching the hero's example picture now instead of after the app has
+			loaded. Picks the language as lib/i18n.tsx does, and the size as HERO_SIZES in HomePage.tsx.
+		-->
+		<script>
+			(function () {
+				if (location.pathname !== "/") return;
+				var lang = "en";
+				try {
+					lang = localStorage.getItem("wdf:lang");
+				} catch (e) {}
+				if (lang !== "en" && lang !== "vi") {
+					var langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]).map(function (l) {
+						return String(l).toLowerCase();
+					});
+					var zone = "";
+					try {
+						zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+					} catch (e) {}
+					lang =
+						langs.some(function (l) {
+							return l === "vi" || l.indexOf("vi-") === 0 || /-vn$/.test(l);
+						}) ||
+						zone === "Asia/Ho_Chi_Minh" ||
+						zone === "Asia/Saigon"
+							? "vi"
+							: "en";
+				}
+				var base = "/showcase/" + lang + "-invitation-blank";
+				var link = document.createElement("link");
+				link.rel = "preload";
+				link.as = "image";
+				link.fetchPriority = "high";
+				link.imageSizes = "(max-width: 860px) 80vw, 420px";
+				link.imageSrcset = base + "-half.webp 480w, " + base + ".webp 960w";
+				document.head.appendChild(link);
+			})();
+		</script>
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 		<link rel="canonical" href="https://fill.wotda.app/" />

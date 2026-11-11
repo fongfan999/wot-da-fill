@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { EXAMPLE, EXAMPLE_KINDS, exampleExtra, type ExampleKind } from "../lib/example";
+import showcaseLayout from "../data/showcase.json";
 import { useLang, useT, type Lang } from "../lib/i18n";
-import { getShowcase, type Showcase } from "../lib/showcase";
 import { Button, FileDrop, Icon, FeedbackLink, feedbackHref, GITHUB_URL, GitHubLink, LangSwitch, HomeLink, MadeBy, Segmented, ThemeSwitch, type IconName } from "./ui";
 
 const IMAGES = "image/jpeg,image/png,image/webp";
@@ -10,6 +10,8 @@ const FACT_ICONS: IconName[] = ["people", "ruler", "download"];
 const STEP_MS = 900;
 /** How long one example takes to give way to the next. */
 const SWAP_MS = 480;
+/** How wide the hero card shows: most of a phone's width, or its share of the two columns. */
+const HERO_SIZES = "(max-width: 860px) 80vw, 420px";
 
 /**
  * The home page (design system HomeScreen): what the product does, how little it takes, and the
@@ -65,7 +67,7 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 							))}
 						</h1>
 						<p className="wf-home-lead">{h.lead}</p>
-						<FileDrop accept={IMAGES} onFile={onFile} label={h.addDesign} className="wf-drop-home">
+						<FileDrop accept={IMAGES} onFile={onFile} className="wf-drop-home">
 							<span className="wf-drop-icon">
 								<Icon name="image" size={28} />
 							</span>
@@ -168,21 +170,27 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 	);
 }
 
-/** The pictures for one example in one language, drawn once and then shared by every picture of it. */
-function useShowcase(lang: Lang, kind: ExampleKind): Showcase | null {
-	const key = `${lang}:${kind}`;
-	const [ready, setReady] = useState<{ key: string; show: Showcase } | null>(null);
-	useEffect(() => {
-		let alive = true;
-		getShowcase(lang, kind)
-			.then((show) => alive && setReady({ key, show }))
-			.catch(() => {});
-		return () => {
-			alive = false;
-		};
-	}, [key, lang, kind]);
-	return ready?.key === key ? ready.show : null;
+/**
+ * The examples' pictures, pre-rendered by `pnpm showcase:update` into public/showcase: each blank
+ * design, and each name as a layer cropped to its text, with where it sits on the design (as
+ * fractions of its size). A half-width copy sits beside every picture.
+ */
+const SHOWCASE = showcaseLayout as Record<string, { width: number; names: number[][] }>;
+
+/**
+ * A layer of an example as image attributes: the blank design, or the name for `row` placed over
+ * it. Every layer gives the whole design's widths, so with the same `sizes` a name always comes at
+ * the same sharpness as the design under it.
+ */
+function showcaseImage(lang: Lang, kind: ExampleKind, layer: "blank" | number) {
+	const base = `/showcase/${lang}-${kind}-${layer}`;
+	const { width, names } = SHOWCASE[`${lang}-${kind}`];
+	const at = layer === "blank" ? null : names[layer];
+	const style: CSSProperties | undefined = at ? { left: pct(at[0]), top: pct(at[1]), width: pct(at[2]), height: pct(at[3]) } : undefined;
+	return { src: `${base}.webp`, srcSet: `${base}-half.webp ${width / 2}w, ${base}.webp ${width}w`, style };
 }
+
+const pct = (n: number) => `${n * 100}%`;
 
 /**
  * One example design as the app draws it: the blank picture, with the name for `row` laid over it
@@ -195,6 +203,8 @@ function ExamplePic({
 	width,
 	row,
 	animate,
+	priority,
+	sizes = "(max-width: 860px) 70vw, 280px",
 	children,
 }: {
 	lang: Lang;
@@ -202,14 +212,26 @@ function ExamplePic({
 	width: CSSProperties["width"];
 	row?: number;
 	animate?: boolean;
+	/** The first thing on screen: fetched first, never lazily. */
+	priority?: boolean;
+	/** How wide it shows, for picking the half- or full-width picture. */
+	sizes?: string;
 	children?: ReactNode;
 }) {
-	const show = useShowcase(lang, kind);
+	const img = {
+		className: "wf-expic-img",
+		alt: "",
+		draggable: false,
+		sizes,
+		decoding: "async",
+		loading: priority ? "eager" : "lazy",
+		fetchPriority: priority ? "high" : undefined,
+	} as const;
 	return (
 		<div className="wf-expic" data-kind={kind} style={{ width }}>
-			{show && <img className="wf-expic-img" src={show.blank} alt="" draggable={false} />}
-			{show && row !== undefined && (
-				<img key={`${kind}${row}`} className={`wf-expic-img wf-expic-name${animate ? " wf-ex-in" : ""}`} src={show.names[row]} alt="" draggable={false} />
+			<img {...img} {...showcaseImage(lang, kind, "blank")} />
+			{row !== undefined && (
+				<img key={`${kind}${row}`} {...img} {...showcaseImage(lang, kind, row)} className={`wf-expic-img wf-expic-name${animate ? " wf-ex-in" : ""}`} />
 			)}
 			{children}
 		</div>
@@ -246,10 +268,21 @@ function ExampleDemo({ lang, kind, onKind }: { lang: Lang; kind: ExampleKind; on
 		return () => clearInterval(timer);
 	}, [kind, lang, paused, names.length, onKind]);
 
-	// Draw all three examples up front, so switching never waits on a blank card.
+	// Once the page has loaded, fetch every example's pictures, so switching never waits on a blank card.
 	useEffect(() => {
-		EXAMPLE_KINDS.forEach((k) => getShowcase(lang, k).catch(() => {}));
-	}, [lang]);
+		const fetchAll = () =>
+			EXAMPLE_KINDS.forEach((k) =>
+				(["blank", ...names.keys()] as const).forEach((layer) => {
+					const pic = new Image();
+					pic.sizes = HERO_SIZES;
+					pic.srcset = showcaseImage(lang, k, layer).srcSet;
+				}),
+			);
+		if (document.readyState === "complete") return void setTimeout(fetchAll, 1000);
+		const onLoad = () => setTimeout(fetchAll, 1000);
+		window.addEventListener("load", onLoad, { once: true });
+		return () => window.removeEventListener("load", onLoad);
+	}, [lang, names]);
 
 	// The example being left stays a moment, fading out under the one arriving.
 	const [leaving, setLeaving] = useState<{ kind: ExampleKind; row: number } | null>(null);
@@ -276,11 +309,11 @@ function ExampleDemo({ lang, kind, onKind }: { lang: Lang; kind: ExampleKind; on
 			<div className="wf-exdemo-stage" role="img" aria-label={h.pictureLabel} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
 				{leaving && (
 					<div key={`out-${leaving.kind}`} className="wf-exdemo-card wf-exdemo-out" data-kind={leaving.kind} aria-hidden="true">
-						<ExamplePic lang={lang} kind={leaving.kind} width="100%" row={leaving.row} />
+						<ExamplePic lang={lang} kind={leaving.kind} width="100%" row={leaving.row} sizes={HERO_SIZES} priority />
 					</div>
 				)}
 				<div key={kind} className={`wf-exdemo-card${leaving ? " wf-exdemo-in" : ""}`} data-kind={kind}>
-					<ExamplePic lang={lang} kind={kind} width="100%" row={at} animate={!leaving} />
+					<ExamplePic lang={lang} kind={kind} width="100%" row={at} animate={!leaving} sizes={HERO_SIZES} priority />
 				</div>
 				<NameList names={names} lang={lang} current={at} extras={kind === "badge" ? extras : null} onPick={setIndex} />
 			</div>

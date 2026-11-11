@@ -432,13 +432,12 @@ export function FileDrop({
 	onFile,
 	children,
 	className,
-	label,
 }: {
 	accept: string;
 	onFile(file: File): void;
+	/** Also its accessible name, so what it says and what it is called are the same. */
 	children: ReactNode;
 	className?: string;
-	label: string;
 }) {
 	const input = useRef<HTMLInputElement>(null);
 	const [over, setOver] = useState(false);
@@ -447,7 +446,6 @@ export function FileDrop({
 			className={cx("wf-drop", over && "wf-drop-over", className)}
 			role="button"
 			tabIndex={0}
-			aria-label={label}
 			onClick={() => input.current?.click()}
 			onKeyDown={(e) => {
 				if (e.key === "Enter" || e.key === " ") {
