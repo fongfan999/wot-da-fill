@@ -90,6 +90,9 @@ const en = {
 	language: "Language",
 	darkTheme: "Dark theme",
 	github: "Source code on GitHub",
+	feedback: "Send feedback or report a bug",
+	feedbackSubject: "Wot Da Fill feedback",
+	feedbackBody: "What happened, or what would you like to see?\n\n",
 	lightTheme: "Light theme",
 	langName: { en: "English", vi: "Tiếng Việt" },
 
@@ -361,6 +364,9 @@ const vi: Strings = {
 	language: "Ngôn ngữ",
 	darkTheme: "Giao diện tối",
 	github: "Mã nguồn trên GitHub",
+	feedback: "Góp ý hoặc báo lỗi",
+	feedbackSubject: "Góp ý Wot Da Fill",
+	feedbackBody: "Bạn gặp vấn đề gì, hoặc muốn có thêm tính năng gì?\n\n",
 	lightTheme: "Giao diện sáng",
 	langName: en.langName,
 

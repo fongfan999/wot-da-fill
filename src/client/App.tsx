@@ -10,6 +10,7 @@ import {
 	FileDrop,
 	Flag,
 	GITHUB_URL,
+	feedbackHref,
 	GitHubMark,
 	Icon,
 	IconButton,
@@ -489,6 +490,7 @@ export function App() {
 								onClick: () => setTheme(theme === "dark" ? "light" : "dark"),
 							},
 							{ label: "GitHub", icon: <GitHubMark />, onClick: () => window.open(GITHUB_URL, "_blank", "noopener") },
+							{ label: t.feedback, icon: "mail", onClick: () => (window.location.href = feedbackHref(t.feedbackSubject, t.feedbackBody)) },
 							{ label: t.startOver, icon: "refresh", onClick: startOver },
 						]}
 					/>

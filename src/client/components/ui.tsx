@@ -40,6 +40,7 @@ const PATHS = {
 	globe: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.6 9h16.8M3.6 15h16.8M12 3c2.4 2.6 3.6 5.6 3.6 9s-1.2 6.4-3.6 9c-2.4-2.6-3.6-5.6-3.6-9S9.6 5.6 12 3z",
 	font: "M4 20 10 4h1l6 16M6.5 14h8M17 20h4",
 	ruler: "M4 17 17 4l3 3L7 20zM8 13l2 2M11 10l2 2M14 7l2 2",
+	mail: "M3 6h18v12H3zM3 7l9 6 9-6",
 	people: "M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM21 19v-1a4 4 0 0 0-3-3.9M15.5 3.2a3.5 3.5 0 0 1 0 6.6",
 } as const;
 
@@ -725,6 +726,25 @@ export function GitHubLink() {
 	return (
 		<a className="wf-iconbtn" href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label={t.github} title={t.github}>
 			<GitHubMark />
+		</a>
+	);
+}
+
+/** Where feedback and bug reports go. */
+export const FEEDBACK_EMAIL = "hey@wotdafong.dev";
+
+/** A mailto link with a subject and a short template, so a report arrives with the browser it happened in. */
+export function feedbackHref(subject: string, body: string) {
+	const text = `${body}\n\n---\n${navigator.userAgent}`;
+	return `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+}
+
+/** A round button that opens an email for feedback or a bug report, beside the GitHub link. */
+export function FeedbackLink() {
+	const t = useT();
+	return (
+		<a className="wf-iconbtn" href={feedbackHref(t.feedbackSubject, t.feedbackBody)} aria-label={t.feedback} title={t.feedback}>
+			<Icon name="mail" />
 		</a>
 	);
 }
