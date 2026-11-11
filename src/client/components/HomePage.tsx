@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { EXAMPLE, EXAMPLE_KINDS, exampleExtra, type ExampleKind } from "../lib/example";
 import { useLang, useT, type Lang } from "../lib/i18n";
 import { getShowcase, type Showcase } from "../lib/showcase";
@@ -7,7 +7,7 @@ import { Button, FileDrop, Icon, LangSwitch, MadeBy, ProductMark, Segmented, typ
 const IMAGES = "image/jpeg,image/png,image/webp";
 const FACT_ICONS: IconName[] = ["people", "ruler", "font", "download"];
 /** How long each name stays before the next one settles onto the card. */
-const STEP_MS = 2400;
+const STEP_MS = 1400;
 
 /**
  * The home page (design system HomeScreen): what the product does, how little it takes, and the
@@ -207,9 +207,10 @@ function ExamplePic({
 
 /**
  * The hero picture (design system ExampleDemo): one example with the name on it changing as the
- * list is stepped through. Every 2.4 seconds the next name is highlighted and settles onto the
- * card. It pauses while the pointer is over it and while the tab is hidden, and for anyone who asks
- * for reduced motion it never runs: they see the first name, still.
+ * list is stepped through. Every 1.4 seconds the next name is highlighted and settles onto the
+ * card; after the last name it moves on to the next example, until the visitor picks one
+ * themselves. It pauses while the pointer is over it and while the tab is hidden, and for anyone
+ * who asks for reduced motion it never runs: they see the first name, still.
  */
 function ExampleDemo({ lang, kind, onKind }: { lang: Lang; kind: ExampleKind; onKind(kind: ExampleKind): void }) {
 	const t = useT();
@@ -218,15 +219,23 @@ function ExampleDemo({ lang, kind, onKind }: { lang: Lang; kind: ExampleKind; on
 	const extras = exampleExtra(lang, kind);
 	const [index, setIndex] = useState(0);
 	const [paused, setPaused] = useState(false);
+	// Once the visitor picks an example, it stays on that one.
+	const [chosen, setChosen] = useState(false);
+	const indexRef = useRef(index);
+	indexRef.current = index;
 
 	useEffect(() => {
 		if (paused) return;
 		if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 		const timer = setInterval(() => {
-			if (!document.hidden) setIndex((i) => (i + 1) % names.length);
+			if (document.hidden) return;
+			const next = indexRef.current + 1;
+			if (next < names.length) return setIndex(next);
+			setIndex(0);
+			if (!chosen) onKind(EXAMPLE_KINDS[(EXAMPLE_KINDS.indexOf(kind) + 1) % EXAMPLE_KINDS.length]);
 		}, STEP_MS);
 		return () => clearInterval(timer);
-	}, [kind, lang, paused, names.length]);
+	}, [kind, lang, paused, chosen, names.length, onKind]);
 
 	const at = index % names.length;
 	return (
@@ -244,6 +253,7 @@ function ExampleDemo({ lang, kind, onKind }: { lang: Lang; kind: ExampleKind; on
 					onChange={(k) => {
 						onKind(k);
 						setIndex(0);
+						setChosen(true);
 					}}
 					options={EXAMPLE_KINDS.map((k) => ({ value: k, label: h.kinds[k] }))}
 				/>
