@@ -3,6 +3,7 @@ import { DataPanel } from "./components/DataPanel";
 import { Editor } from "./components/Editor";
 import { FieldPanel, fieldLabel } from "./components/FieldPanel";
 import { GenerateDialog } from "./components/GenerateDialog";
+import { HomePage } from "./components/HomePage";
 import { ShareDialog } from "./components/ShareDialog";
 import {
 	Button,
@@ -25,7 +26,7 @@ import { findTooLong, type TooLong } from "./lib/fit";
 import { addCustomFont, DEFAULT_FONT, ensureFont } from "./lib/fonts";
 import { textsForRow } from "./lib/generate";
 import { loadTemplateImage } from "./lib/image";
-import { createSampleTemplate } from "./lib/sample";
+import { getSampleTemplate } from "./lib/showcase";
 import { loadSharedTemplate, shareTemplate } from "./lib/share";
 import { formatBytes, matchColumn, placeholdersIn, ROW_NUMBER, unknownPlaceholders } from "./lib/text";
 import { useUndoable } from "./lib/useUndoable";
@@ -251,8 +252,10 @@ export function App() {
 	const trySample = async () => {
 		setBusy("Drawing an example invitation…");
 		try {
-			const { blob, fields: sampleFields } = await createSampleTemplate();
-			setImage(await loadTemplateImage(blob, "example-invitation.png"));
+			const sample = await getSampleTemplate();
+			// The drawing is shared with the home page; the boxes are copied so edits never reach it.
+			const sampleFields = sample.fields.map((f) => ({ ...f, box: { ...f.box }, font: { ...f.font } }));
+			setImage(await loadTemplateImage(sample.blob, "example-invitation.png"));
 			resetFields(sampleFields);
 			setSelectedId(sampleFields[0].id);
 			if (!source) applySource(sampleSource());
@@ -391,9 +394,8 @@ export function App() {
 	const flagged = new Set(tooLong?.find((r) => r.row === previewIndex)?.fields ?? []);
 
 	const missing = !image ? "Add your design first." : !rowCount ? "Add your names first." : !fields.length ? "Add a text box first." : null;
-	const stepState = (id: Step, i: number): StepState => {
-		if (image && id === step) return "current";
-		if (!image && i === 0) return "current";
+	const stepState = (id: Step): StepState => {
+		if (id === step) return "current";
 		const done = id === "design" ? !!image : id === "names" ? rowCount > 0 : fields.length > 0;
 		return done ? "done" : "todo";
 	};
@@ -449,12 +451,28 @@ export function App() {
 		"Drag the box to where the name belongs. Pull its corners to resize it."
 	);
 
+	const toasts = (
+		<div className="wf-toasts">
+			{busy && <Toast toast={{ id: 0, kind: "busy", text: busy }} />}
+			{toast && !busy && <Toast key={toast.id} toast={toast} onDismiss={() => setToast(null)} />}
+		</div>
+	);
+
+	// No design yet: the home page, with no steps bar or side panel.
+	if (!image)
+		return (
+			<>
+				<HomePage onFile={openImage} onExample={trySample} />
+				{toasts}
+			</>
+		);
+
 	return (
 		<div className="wf-app">
 			<header className="wf-topbar">
 				<ProductMark />
 				<Steps
-					steps={STEPS.map((s, i) => ({ label: s.label, state: stepState(s.id, i), disabled: !image }))}
+					steps={STEPS.map((s) => ({ label: s.label, state: stepState(s.id) }))}
 					onSelect={(i) => setStep(STEPS[i].id)}
 				/>
 				<div className="wf-topbar-actions">
@@ -467,152 +485,124 @@ export function App() {
 				</div>
 			</header>
 
-			<main className={`wf-work${image ? "" : " wf-work-solo"}`}>
+			<main className="wf-work">
 				<div className="wf-stage">
-					{image ? (
-						<>
-							<div className="wf-stage-bar">
-								{rowCount > 0 ? (
-									<div className="wf-switcher" role="group" aria-label="Which name to show">
-										<IconButton icon="left" label="Previous name" disabled={previewIndex <= 0} onClick={() => setPreviewRow(previewIndex - 1)} />
-										<span className="wf-switcher-label" aria-live="polite">
-											<span className="wf-meta">
-												{count(previewIndex + 1)} of {count(rowCount)}
-											</span>
-											<span className="wf-switcher-name">{texts.find((t) => t.trim()) || <i className="wf-muted">empty</i>}</span>
-										</span>
-										<IconButton
-											icon="right"
-											label="Next name"
-											disabled={previewIndex >= rowCount - 1}
-											onClick={() => setPreviewRow(previewIndex + 1)}
-										/>
-									</div>
-								) : (
-									<span className="wf-stage-label">Example name</span>
-								)}
-								<div className="wf-stage-tools">
-									<IconButton icon="undo" label="Undo" title={`Undo (${MOD}Z)`} disabled={!canUndo} onClick={undo} />
-									<IconButton icon="redo" label="Redo" title={`Redo (${MOD === "⌘" ? "⇧⌘Z" : "Ctrl+Y"})`} disabled={!canRedo} onClick={redo} />
-									<span className="wf-sep" aria-hidden="true" />
-									<IconButton
-										icon={showBoxes ? "eye" : "eyeOff"}
-										label={showBoxes ? "Hide the boxes" : "Show the boxes"}
-										pressed={!showBoxes}
-										onClick={() => setShowBoxes((s) => !s)}
-									/>
-								</div>
+					<div className="wf-stage-bar">
+						{rowCount > 0 ? (
+							<div className="wf-switcher" role="group" aria-label="Which name to show">
+								<IconButton icon="left" label="Previous name" disabled={previewIndex <= 0} onClick={() => setPreviewRow(previewIndex - 1)} />
+								<span className="wf-switcher-label" aria-live="polite">
+									<span className="wf-meta">
+										{count(previewIndex + 1)} of {count(rowCount)}
+									</span>
+									<span className="wf-switcher-name">{texts.find((t) => t.trim()) || <i className="wf-muted">empty</i>}</span>
+								</span>
+								<IconButton
+									icon="right"
+									label="Next name"
+									disabled={previewIndex >= rowCount - 1}
+									onClick={() => setPreviewRow(previewIndex + 1)}
+								/>
 							</div>
-							<Editor
-								image={image}
-								fields={fields}
-								texts={texts}
-								labels={labels}
-								flagged={flagged}
-								selectedId={selectedId}
-								showGuides={showBoxes}
-								onSelect={setSelectedId}
-								onOpen={() => setStep("text")}
-								onChangeBox={(id, box) => changeFields((fs) => fs.map((f) => (f.id === id ? { ...f, box } : f)), `${id}:box`)}
-								onCreate={createField}
+						) : (
+							<span className="wf-stage-label">Example name</span>
+						)}
+						<div className="wf-stage-tools">
+							<IconButton icon="undo" label="Undo" title={`Undo (${MOD}Z)`} disabled={!canUndo} onClick={undo} />
+							<IconButton icon="redo" label="Redo" title={`Redo (${MOD === "⌘" ? "⇧⌘Z" : "Ctrl+Y"})`} disabled={!canRedo} onClick={redo} />
+							<span className="wf-sep" aria-hidden="true" />
+							<IconButton
+								icon={showBoxes ? "eye" : "eyeOff"}
+								label={showBoxes ? "Hide the boxes" : "Show the boxes"}
+								pressed={!showBoxes}
+								onClick={() => setShowBoxes((s) => !s)}
 							/>
-							<p className="wf-stage-hint">{hint}</p>
-						</>
-					) : (
-						<div className="wf-start">
-							<FileDrop accept={IMAGES} onFile={openImage} label="Add your design" className="wf-drop-hero">
-								<span className="wf-drop-icon">
-									<Icon name="image" size={28} />
-								</span>
-								<h1 className="wf-drop-title">
-									Drop your <span className="wf-serif">design</span> here
-								</h1>
-								<p className="wf-drop-hint">An invitation, certificate or name card with the name left blank. JPG, PNG or WebP.</p>
-								<span className="wf-btn wf-btn-primary wf-btn-lg">
-									<Icon name="upload" size={20} /> Choose a picture
-								</span>
-							</FileDrop>
-							<Button variant="link" onClick={trySample}>
-								or try an example
-							</Button>
-							<MadeBy />
 						</div>
-					)}
+					</div>
+					<Editor
+						image={image}
+						fields={fields}
+						texts={texts}
+						labels={labels}
+						flagged={flagged}
+						selectedId={selectedId}
+						showGuides={showBoxes}
+						onSelect={setSelectedId}
+						onOpen={() => setStep("text")}
+						onChangeBox={(id, box) => changeFields((fs) => fs.map((f) => (f.id === id ? { ...f, box } : f)), `${id}:box`)}
+						onCreate={createField}
+					/>
+					<p className="wf-stage-hint">{hint}</p>
 				</div>
 
-				{image && (
-					<aside className="wf-panel" aria-label={STEPS.find((s) => s.id === step)?.label}>
-						<div className="wf-panel-body">
-							{step === "design" && (
-								<Section title="Design">
-									<div className="wf-file">
-										<Icon name="image" size={22} />
-										<span>
-											<b>{image.name}</b>
-											<span className="wf-meta">
-												{image.width} × {image.height} · {formatBytes(image.size)}
-											</span>
+				<aside className="wf-panel" aria-label={STEPS.find((s) => s.id === step)?.label}>
+					<div className="wf-panel-body">
+						{step === "design" && (
+							<Section title="Design">
+								<div className="wf-file">
+									<Icon name="image" size={22} />
+									<span>
+										<b>{image.name}</b>
+										<span className="wf-meta">
+											{image.width} × {image.height} · {formatBytes(image.size)}
 										</span>
-									</div>
-									<FileDrop accept={IMAGES} onFile={openImage} label="Replace the design" className="wf-drop-compact">
-										<Icon name="upload" size={22} />
-										<span className="wf-drop-text">
-											<span className="wf-drop-title">Use a different picture</span>
-											<span className="wf-drop-hint">Your text boxes stay where they are.</span>
-										</span>
-									</FileDrop>
-								</Section>
-							)}
-							{step === "names" && (
-								<DataPanel
-									source={source}
-									table={table}
-									previewRow={previewIndex}
-									expectedColumns={expectedColumns}
-									paste={paste}
-									delimiter={delimiter}
-									onPaste={setPaste}
-									onDelimiter={setDelimiter}
-									onSource={applySource}
-									onPreviewRow={setPreviewRow}
-									onError={(m) => say(m, "error")}
-									onBusy={setBusy}
-								/>
-							)}
-							{step === "text" && (
-								<FieldPanel
-									fields={fields}
-									selected={selected}
-									columns={columns}
-									customFonts={customFonts}
-									imageWidth={image.width}
-									onSelect={setSelectedId}
-									onChange={updateField}
-									onAdd={addText}
-									onDuplicate={duplicateField}
-									onDelete={deleteField}
-									onUploadFont={uploadFont}
-								/>
-							)}
-						</div>
-						<div className="wf-panel-foot">
-							{step !== "design" && fitNotice}
-							{primary}
-							{step !== "design" && (step === "names" ? !rowCount : !!missing) && (
-								<p className="wf-hint" style={{ textAlign: "center" }}>
-									{step === "names" ? "Add your names first." : missing}
-								</p>
-							)}
-							<MadeBy />
-						</div>
-					</aside>
-				)}
+									</span>
+								</div>
+								<FileDrop accept={IMAGES} onFile={openImage} label="Replace the design" className="wf-drop-compact">
+									<Icon name="upload" size={22} />
+									<span className="wf-drop-text">
+										<span className="wf-drop-title">Use a different picture</span>
+										<span className="wf-drop-hint">Your text boxes stay where they are.</span>
+									</span>
+								</FileDrop>
+							</Section>
+						)}
+						{step === "names" && (
+							<DataPanel
+								source={source}
+								table={table}
+								previewRow={previewIndex}
+								expectedColumns={expectedColumns}
+								paste={paste}
+								delimiter={delimiter}
+								onPaste={setPaste}
+								onDelimiter={setDelimiter}
+								onSource={applySource}
+								onPreviewRow={setPreviewRow}
+								onError={(m) => say(m, "error")}
+								onBusy={setBusy}
+							/>
+						)}
+						{step === "text" && (
+							<FieldPanel
+								fields={fields}
+								selected={selected}
+								columns={columns}
+								customFonts={customFonts}
+								imageWidth={image.width}
+								onSelect={setSelectedId}
+								onChange={updateField}
+								onAdd={addText}
+								onDuplicate={duplicateField}
+								onDelete={deleteField}
+								onUploadFont={uploadFont}
+							/>
+						)}
+					</div>
+					<div className="wf-panel-foot">
+						{step !== "design" && fitNotice}
+						{primary}
+						{step !== "design" && (step === "names" ? !rowCount : !!missing) && (
+							<p className="wf-hint" style={{ textAlign: "center" }}>
+								{step === "names" ? "Add your names first." : missing}
+							</p>
+						)}
+						<MadeBy />
+					</div>
+				</aside>
 			</main>
 
-			<div className="wf-toasts">
-				{busy && <Toast toast={{ id: 0, kind: "busy", text: busy }} />}
-				{toast && !busy && <Toast key={toast.id} toast={toast} onDismiss={() => setToast(null)} />}
-			</div>
+			{toasts}
 
 			{generating && image && table && (
 				<GenerateDialog params={{ template: image, fields, customFonts, table }} onClose={() => setGenerating(false)} />

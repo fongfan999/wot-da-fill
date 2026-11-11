@@ -33,6 +33,9 @@ const PATHS = {
 	more: "M5 12h.01M12 12h.01M19 12h.01",
 	alert: "M12 9v4M12 17h.01M10.3 4.3 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z",
 	info: "M12 11v6M12 7.5h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
+	font: "M4 20 10 4h1l6 16M6.5 14h8M17 20h4",
+	ruler: "M4 17 17 4l3 3L7 20zM8 13l2 2M11 10l2 2M14 7l2 2",
+	people: "M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM21 19v-1a4 4 0 0 0-3-3.9M15.5 3.2a3.5 3.5 0 0 1 0 6.6",
 } as const;
 
 export type IconName = keyof typeof PATHS;
