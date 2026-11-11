@@ -5,7 +5,7 @@ import { getShowcase, type Showcase } from "../lib/showcase";
 import { Button, FileDrop, Icon, GitHubLink, LangSwitch, MadeBy, ProductMark, Segmented, ThemeSwitch, type IconName } from "./ui";
 
 const IMAGES = "image/jpeg,image/png,image/webp";
-const FACT_ICONS: IconName[] = ["people", "ruler", "font", "download"];
+const FACT_ICONS: IconName[] = ["people", "ruler", "download"];
 /** How long each name stays before the next one settles onto the card. */
 const STEP_MS = 900;
 /** How long one example takes to give way to the next. */

@@ -342,7 +342,6 @@ const en = {
 		facts: [
 			["Your list stays with you", "The cards are made in your browser. Names are never uploaded anywhere."],
 			["Long names fit", "Long names shrink to fit, and you are told which ones need a look before you download."],
-			["Vietnamese looks right", "Accents are drawn properly, and fonts that cannot draw them are marked."],
 			["Ready to send", "Cards are kept small without losing quality, so they are quick to share."],
 		] as [string, string][],
 		endTitle: "No design to hand?",
@@ -605,7 +604,6 @@ const vi: Strings = {
 		facts: [
 			["Danh sách ở lại với bạn", "Thiệp được tạo ngay trong trình duyệt. Tên không bao giờ được tải lên đâu cả."],
 			["Tên dài vẫn vừa", "Tên dài tự thu nhỏ cho vừa, và bạn được báo những tên cần xem lại trước khi tải về."],
-			["Tiếng Việt hiển thị chuẩn", "Dấu được vẽ đúng, và phông chữ nào không có dấu đều được đánh dấu."],
 			["Sẵn sàng gửi đi", "Thiệp được nén nhẹ mà không giảm chất lượng, gửi đi nhanh chóng."],
 		],
 		endTitle: "Chưa có thiết kế?",
