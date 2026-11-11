@@ -650,6 +650,9 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 .wf-home-foot { display: flex; justify-content: center; padding: var(--space-6); border-top: 1px solid var(--line); }
 
 /* The picture of what the product does: a list of names beside the cards it becomes. */
+.wf-home-show { display: flex; flex-direction: column; align-items: center; gap: var(--space-5); min-width: 0; }
+.wf-home-lang { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-3); font-size: 13px; color: var(--muted); }
+.wf-home-end .wf-home-lang { margin-top: var(--space-1); }
 .wf-fan { position: relative; width: 100%; aspect-ratio: 1 / 0.84; }
 .wf-fan .wf-card-pic { position: absolute; width: 56%; }
 .wf-fan .wf-card-pic:nth-child(1) { left: 3%; top: 1%; rotate: -5deg; }

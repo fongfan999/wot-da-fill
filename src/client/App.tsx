@@ -27,6 +27,7 @@ import { addCustomFont, DEFAULT_FONT, ensureFont } from "./lib/fonts";
 import { textsForRow } from "./lib/generate";
 import { loadTemplateImage } from "./lib/image";
 import { getSampleTemplate } from "./lib/showcase";
+import { useExampleLang } from "./lib/example";
 import { loadSharedTemplate, shareTemplate } from "./lib/share";
 import { formatBytes, matchColumn, placeholdersIn, ROW_NUMBER, unknownPlaceholders } from "./lib/text";
 import { useUndoable } from "./lib/useUndoable";
@@ -62,6 +63,7 @@ export function App() {
 	const [generating, setGenerating] = useState(false);
 	const [sharing, setSharing] = useState(false);
 	const [tooLong, setTooLong] = useState<TooLong[] | null>(null);
+	const [exampleLang, setExampleLang] = useExampleLang();
 	const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
 	const table = useMemo(() => (source ? buildTable(source.grid, source.hasHeader) : null), [source]);
@@ -252,13 +254,13 @@ export function App() {
 	const trySample = async () => {
 		setBusy("Drawing an example invitation…");
 		try {
-			const sample = await getSampleTemplate();
+			const sample = await getSampleTemplate(exampleLang);
 			// The drawing is shared with the home page; the boxes are copied so edits never reach it.
 			const sampleFields = sample.fields.map((f) => ({ ...f, box: { ...f.box }, font: { ...f.font } }));
 			setImage(await loadTemplateImage(sample.blob, "example-invitation.png"));
 			resetFields(sampleFields);
 			setSelectedId(sampleFields[0].id);
-			if (!source) applySource(sampleSource());
+			if (!source) applySource(sampleSource(exampleLang));
 			setStep("text");
 		} catch (err) {
 			say(err instanceof Error ? err.message : "Couldn't draw the example.", "error");
@@ -462,7 +464,7 @@ export function App() {
 	if (!image)
 		return (
 			<>
-				<HomePage onFile={openImage} onExample={trySample} />
+				<HomePage lang={exampleLang} onLang={setExampleLang} onFile={openImage} onExample={trySample} />
 				{toasts}
 			</>
 		);

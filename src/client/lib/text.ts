@@ -1,4 +1,5 @@
 import type { Row, TextCase } from "../types";
+import { EXAMPLE, getExampleLang } from "./example";
 
 const PLACEHOLDER = /\{([^{}]+)\}/g;
 
@@ -32,15 +33,13 @@ export function fillTemplate(
 	return template.replace(PLACEHOLDER, (_, raw: string) => {
 		const key = raw.trim();
 		if (key === ROW_NUMBER) return String(rowNumber).padStart(pad, "0");
-		// No list yet: names get a realistic sample so sizing looks right; other columns stay visible as {Column}.
-		if (!row) return NAME_LIKE.test(fold(key)) ? SAMPLE_VALUE : `{${key}}`;
+		// No list yet: names get the example name (in the example's language) so sizing looks right; other columns stay visible as {Column}.
+		if (!row) return NAME_LIKE.test(fold(key)) ? EXAMPLE[getExampleLang()].name : `{${key}}`;
 		const col = matchColumn(key, columns);
 		return col ? (row[col] ?? "") : "";
 	});
 }
 
-/** Shown in the preview before any list is loaded ("John Doe", Vietnamese style). */
-export const SAMPLE_VALUE = "Nguyễn Văn A";
 const NAME_LIKE = /\b(name|ten|ho ten|ho va ten|guest|khach|khach moi|nguoi nhan|recipient)\b|^column a$/;
 
 export function applyCase(text: string, mode: TextCase): string {

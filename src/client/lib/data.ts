@@ -1,4 +1,5 @@
 import type { DataSource, Row, Table } from "../types";
+import { EXAMPLE, getExampleLang, type ExampleLang } from "./example";
 import { cleanCell } from "./text";
 
 export type Delimiter = "auto" | "tab" | "comma" | "semicolon" | "line";
@@ -161,26 +162,13 @@ export function buildTable(grid: string[][], hasHeader: boolean): Table {
 	return { columns, rows };
 }
 
-export const SAMPLE_GUESTS = [
-	"Nguyễn Văn An",
-	"Trần Thị Bích Ngọc",
-	"Lê Hoàng Phúc",
-	"Phạm Minh Châu",
-	"Tôn Nữ Hoàng Thị Phương Uyên",
-	"Võ Đức Thắng",
-	"Đặng Khánh Linh",
-	"Bùi Quốc Huy",
-	"Huỳnh Ngọc Ánh",
-	"Đỗ Thanh Tùng",
-	"Ngô Gia Hân",
-	"Dương Trọng Nghĩa",
-];
-
-export function sampleSource(): DataSource {
+/** The example's list: the names and table numbers that go with the sample invitation. */
+export function sampleSource(lang: ExampleLang = getExampleLang()): DataSource {
+	const ex = EXAMPLE[lang];
 	return {
 		kind: "sample",
-		name: "the sample list",
-		grid: [["Họ tên", "Bàn"], ...SAMPLE_GUESTS.map((n, i) => [n, String(Math.floor(i / 2) + 1)])],
+		name: ex.listName,
+		grid: [[...ex.columns], ...ex.guests.map((n, i) => [n, String(Math.floor(i / 2) + 1)])],
 		hasHeader: true,
 	};
 }

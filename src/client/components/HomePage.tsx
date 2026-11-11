@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { getShowcase, SHOWCASE_NAMES, type Showcase } from "../lib/showcase";
-import { Button, FileDrop, Icon, MadeBy, ProductMark, type IconName } from "./ui";
+import { EXAMPLE, type ExampleLang } from "../lib/example";
+import { getShowcase, type Showcase } from "../lib/showcase";
+import { Button, FileDrop, Icon, MadeBy, ProductMark, Segmented, type IconName } from "./ui";
 
 const IMAGES = "image/jpeg,image/png,image/webp";
 
@@ -9,28 +10,55 @@ const IMAGES = "image/jpeg,image/png,image/webp";
  * way in, all in the first view. Anyone without a design sees it; a picture dropped anywhere on
  * the page, the drop zone, or "Try an example" leaves it for the editor.
  */
-export function HomePage({ onFile, onExample }: { onFile(file: File): void; onExample(): void }) {
-	const [pics, setPics] = useState<Showcase | null>(null);
+export function HomePage({
+	lang,
+	onLang,
+	onFile,
+	onExample,
+}: {
+	lang: ExampleLang;
+	onLang(lang: ExampleLang): void;
+	onFile(file: File): void;
+	onExample(): void;
+}) {
+	const [pics, setPics] = useState<{ lang: ExampleLang; pics: Showcase } | null>(null);
 	const [over, setOver] = useState(false);
 
 	useEffect(() => {
 		let alive = true;
 		// Drawn after the page is up, so the first view never waits on fonts.
-		getShowcase()
-			.then((s) => alive && setPics(s))
+		getShowcase(lang)
+			.then((s) => alive && setPics({ lang, pics: s }))
 			.catch(() => {});
 		return () => {
 			alive = false;
 		};
-	}, []);
+	}, [lang]);
 
-	const card = (i: number) => (pics ? <img className="wf-card-pic" src={pics.cards[i]} alt="" /> : <span className="wf-card-pic" />);
+	// Keep the last language's cards up while the new ones draw, so the picture never goes blank.
+	const shown = pics?.pics;
+	const names = EXAMPLE[lang].showcase;
+	const card = (i: number) => (shown ? <img className="wf-card-pic" src={shown.cards[i]} alt="" /> : <span className="wf-card-pic" />);
+	const langToggle = (
+		<div className="wf-home-lang">
+			<span>Example in</span>
+			<Segmented
+				label="Example language"
+				value={lang}
+				onChange={onLang}
+				options={[
+					{ value: "en", label: "English" },
+					{ value: "vi", label: <span lang="vi">Tiếng Việt</span> },
+				]}
+			/>
+		</div>
+	);
 	const fan = (withList: boolean, style?: React.CSSProperties) => (
 		<div className="wf-fan" aria-hidden="true" style={style}>
 			{card(2)}
 			{card(1)}
 			{card(0)}
-			{withList && <NameList />}
+			{withList && <NameList names={names} lang={lang} />}
 		</div>
 	);
 
@@ -89,7 +117,10 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 							))}
 						</ul>
 					</div>
-					{fan(true)}
+					<div className="wf-home-show">
+						{fan(true)}
+						{langToggle}
+					</div>
 				</section>
 
 				<section className="wf-home-wrap wf-home-section">
@@ -100,7 +131,7 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 							title="Add your design"
 							art={
 								<div className="wf-pic-box">
-									{pics ? <img className="wf-card-pic" src={pics.blank} alt="" /> : <span className="wf-card-pic" />}
+									{shown ? <img className="wf-card-pic" src={shown.blank} alt="" /> : <span className="wf-card-pic" />}
 									<div className="wf-box" style={{ left: "22%", top: "38%", width: "56%", height: "15%", cursor: "default" }}>
 										<span className="wf-box-tag">Name goes here</span>
 									</div>
@@ -109,7 +140,7 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 						>
 							Any picture of your card with the name left blank. We put a name on it straight away so you can drag it into place.
 						</Step>
-						<Step n={2} title="Add your names" art={<NameList />}>
+						<Step n={2} title="Add your names" art={<NameList names={names} lang={lang} />}>
 							Paste them, or drop an Excel or CSV file. One person per line; extra columns like table numbers work too.
 						</Step>
 						<Step n={3} title="Download every card" art={fan(false)}>
@@ -142,6 +173,7 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 						Try it with our sample wedding invitation and a few names. Good for invitations, certificates, name badges, table cards and
 						thank-you notes.
 					</p>
+					{langToggle}
 					<Button size="lg" onClick={onExample}>
 						Try an example
 					</Button>
@@ -154,10 +186,10 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 	);
 }
 
-function NameList() {
+function NameList({ names, lang }: { names: readonly string[]; lang: ExampleLang }) {
 	return (
-		<ol className="wf-namelist">
-			{SHOWCASE_NAMES.map((n, i) => (
+		<ol className="wf-namelist" lang={lang}>
+			{names.map((n, i) => (
 				<li key={n}>
 					<span className="wf-meta">{i + 1}</span>
 					{n}
