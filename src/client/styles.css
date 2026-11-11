@@ -687,12 +687,14 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 .wf-pic-box .wf-card-pic { width: 100%; }
 .wf-home.wf-drop-over { outline: 3px dashed var(--accent); outline-offset: -12px; }
 
-/* Language switch: each language named in its own words; short forms on small phones. */
+/* Language switch: two flags. Each segment fits its flag; the ring keeps a light flag visible on paper. */
 .wf-home-bar-end { display: flex; align-items: center; gap: var(--space-2); }
-.wf-lang-short { display: none; }
+.wf-flag { display: block; flex: none; }
+.wf-flag-ring { stroke: var(--line-strong); stroke-width: 0.5; }
+.wf-seg .wf-flag { margin: 0 -2px; }
+.wf-seg button[aria-checked="false"] .wf-flag { opacity: 0.55; filter: saturate(0.6); }
+.wf-seg button[aria-checked="false"]:hover .wf-flag { opacity: 1; filter: none; }
 @media (max-width: 480px) {
-	.wf-lang-long { display: none; }
-	.wf-lang-short { display: inline; }
 	.wf-home-bar-end { gap: var(--space-1); }
 	.wf-home-bar-end .wf-btn-ghost { padding: 0 var(--space-2); }
 }

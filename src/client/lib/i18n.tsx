@@ -17,8 +17,25 @@ let current: Lang = (() => {
 	} catch {
 		// Storage can be blocked; fall back to the browser's language.
 	}
-	return navigator.languages?.some((l) => l.toLowerCase().startsWith("vi")) ? "vi" : "en";
+	return fromBrowser();
 })();
+
+/**
+ * Vietnamese when the browser asks for it, or when the person appears to be in Vietnam: a
+ * Vietnamese region on any of their languages (such as en-VN), or a Vietnamese time zone.
+ * Everyone else gets English.
+ */
+function fromBrowser(): Lang {
+	const langs = (navigator.languages?.length ? navigator.languages : [navigator.language]).map((l) => l.toLowerCase());
+	if (langs.some((l) => l === "vi" || l.startsWith("vi-") || l.endsWith("-vn"))) return "vi";
+	try {
+		const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		if (zone === "Asia/Ho_Chi_Minh" || zone === "Asia/Saigon") return "vi";
+	} catch {
+		// No time zone information; English it is.
+	}
+	return "en";
+}
 
 export function getLang(): Lang {
 	return current;
@@ -72,7 +89,6 @@ const en = {
 	nOfM: (a: number, b: number) => `${enNum(a)} of ${enNum(b)}`,
 	language: "Language",
 	langName: { en: "English", vi: "Tiếng Việt" },
-	langShort: { en: "EN", vi: "VI" },
 
 	// Steps and the editor frame
 	steps: { design: "Design", names: "Names", text: "Text" },
@@ -338,7 +354,6 @@ const vi: Strings = {
 	nOfM: (a, b) => `${viNum(a)} / ${viNum(b)}`,
 	language: "Ngôn ngữ",
 	langName: en.langName,
-	langShort: en.langShort,
 
 	steps: { design: "Thiết kế", names: "Danh sách", text: "Chữ" },
 	stepsLabel: "Các bước",

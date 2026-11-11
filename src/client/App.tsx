@@ -8,6 +8,7 @@ import { ShareDialog } from "./components/ShareDialog";
 import {
 	Button,
 	FileDrop,
+	Flag,
 	Icon,
 	IconButton,
 	MadeBy,
@@ -476,7 +477,7 @@ export function App() {
 						label={t.more}
 						items={[
 							// Names the other language in its own words, so anyone can find their way back.
-							{ label: t.langName[lang === "en" ? "vi" : "en"], icon: "globe", onClick: () => setLang(lang === "en" ? "vi" : "en") },
+							{ label: t.langName[lang === "en" ? "vi" : "en"], icon: <Flag lang={lang === "en" ? "vi" : "en"} size={20} />, onClick: () => setLang(lang === "en" ? "vi" : "en") },
 							{ label: t.startOver, icon: "refresh", onClick: startOver },
 						]}
 					/>

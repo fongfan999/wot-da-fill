@@ -559,7 +559,7 @@ export function Dialog({
 }
 
 /** A small popover menu behind an icon button. */
-export function Menu({ label, items }: { label: string; items: { label: string; icon: IconName; onClick(): void }[] }) {
+export function Menu({ label, items }: { label: string; items: { label: string; icon: IconName | ReactNode; onClick(): void }[] }) {
 	const [open, setOpen] = useState(false);
 	const root = useRef<HTMLDivElement>(null);
 	useEffect(() => {
@@ -589,7 +589,7 @@ export function Menu({ label, items }: { label: string; items: { label: string; 
 								item.onClick();
 							}}
 						>
-							<Icon name={item.icon} />
+							{typeof item.icon === "string" ? <Icon name={item.icon as IconName} /> : item.icon}
 							{item.label}
 						</button>
 					))}
@@ -620,9 +620,52 @@ export function useRemembered(key: string, initial: boolean): [boolean, (v: bool
 	return [value, set];
 }
 
+/** A star with five points, for the Vietnamese flag (yellow star on red). */
+const STAR = Array.from({ length: 10 }, (_, k) => {
+	const r = k % 2 ? 2.45 : 6.2;
+	const a = -Math.PI / 2 + (k * Math.PI) / 5;
+	return `${(15 + r * Math.cos(a)).toFixed(2)},${(10.4 + r * Math.sin(a)).toFixed(2)}`;
+}).join(" ");
+
 /**
- * English or Vietnamese for the whole site. Each name is written in its own language; under
- * 480px the short forms (EN, VI) show so it fits a phone's top bar.
+ * A small national flag for the language switch: the United Kingdom for English, Vietnam for
+ * Vietnamese. Its colours are the flags' own, the one place literal colours appear outside a
+ * person's design; a hairline ring keeps it visible on paper in both themes.
+ */
+export function Flag({ lang, size = 22 }: { lang: Lang; size?: number }) {
+	const id = useId().replace(/:/g, "");
+	return (
+		<svg className="wf-flag" viewBox="0 0 30 20" width={size} height={(size * 2) / 3} aria-hidden="true">
+			<clipPath id={`${id}c`}>
+				<rect width="30" height="20" rx="2.5" />
+			</clipPath>
+			<g clipPath={`url(#${id}c)`}>
+				{lang === "vi" ? (
+					<>
+						<rect width="30" height="20" fill="#da251d" />
+						<polygon points={STAR} fill="#ffcd00" />
+					</>
+				) : (
+					<>
+						<clipPath id={`${id}d`}>
+							<path d="M15 10h15v10zv10H0zH0V0zV0h15z" />
+						</clipPath>
+						<rect width="30" height="20" fill="#012169" />
+						<path d="M0 0l30 20M30 0L0 20" stroke="#fff" strokeWidth="4" />
+						<path d="M0 0l30 20M30 0L0 20" stroke="#c8102e" strokeWidth="2.4" clipPath={`url(#${id}d)`} />
+						<path d="M15 0v20M0 10h30" stroke="#fff" strokeWidth="6.6" />
+						<path d="M15 0v20M0 10h30" stroke="#c8102e" strokeWidth="4" />
+					</>
+				)}
+			</g>
+			<rect className="wf-flag-ring" x="0.25" y="0.25" width="29.5" height="19.5" rx="2.4" fill="none" />
+		</svg>
+	);
+}
+
+/**
+ * English or Vietnamese for the whole site, shown as two flags. Each flag's name (in its own
+ * language) is its accessible name and tooltip.
  */
 export function LangSwitch() {
 	const t = useT();
@@ -632,18 +675,7 @@ export function LangSwitch() {
 			label={t.language}
 			value={lang}
 			onChange={setLang}
-			options={(["en", "vi"] as const).map((l) => ({
-				value: l,
-				title: t.langName[l],
-				label: (
-					<span lang={l}>
-						<span className="wf-lang-long">{t.langName[l]}</span>
-						<span className="wf-lang-short" aria-hidden="true">
-							{t.langShort[l]}
-						</span>
-					</span>
-				),
-			}))}
+			options={(["en", "vi"] as const).map((l) => ({ value: l, title: t.langName[l], label: <Flag lang={l} /> }))}
 		/>
 	);
 }
