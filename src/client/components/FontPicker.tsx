@@ -9,7 +9,6 @@ interface Option {
 	family: string;
 	source: FontRef["source"];
 	google?: GoogleFont;
-	noVietnamese?: boolean;
 }
 
 /** Shows the chosen font in its own letters and opens a searchable list. */
@@ -59,14 +58,14 @@ export function FontPicker({
 			.filter((f) => !q || f.family.toLowerCase().includes(q))
 			.map((f) => ({ key: `c:${f.id}`, family: f.family, source: "custom" }));
 		if (!catalog) return custom;
-		const toOption = (f: GoogleFont): Option => ({ key: `g:${f.family}`, family: f.family, source: "google", google: f, noVietnamese: !f.vietnamese });
+		const toOption = (f: GoogleFont): Option => ({ key: `g:${f.family}`, family: f.family, source: "google", google: f });
 		if (!q) {
 			const byName = new Map(catalog.map((f) => [f.family, f]));
 			const curated = CURATED_FAMILIES.map((n) => byName.get(n)).filter((f): f is GoogleFont => !!f);
 			return [...custom, ...curated.map(toOption)];
 		}
-		// Fonts with Vietnamese accents first, then names that start with what was typed.
-		const rank = (f: GoogleFont) => (f.vietnamese ? 0 : 2) + (f.family.toLowerCase().startsWith(q) ? 0 : 1);
+		// Names that start with what was typed come first.
+		const rank = (f: GoogleFont) => (f.family.toLowerCase().startsWith(q) ? 0 : 1);
 		const matches = catalog
 			.filter((f) => f.family.toLowerCase().includes(q))
 			.sort((a, b) => rank(a) - rank(b))
@@ -212,7 +211,6 @@ function FontRow({
 				{option.family}
 			</span>
 			<span className="wf-font-side">
-				{option.noVietnamese && <span className="wf-font-flag">{t.noVietnamese}</span>}
 				{option.source === "custom" && <span className="wf-meta">{t.yours}</span>}
 				{selected && <Icon name="check" size={16} />}
 			</span>

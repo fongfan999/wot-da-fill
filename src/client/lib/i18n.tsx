@@ -264,7 +264,6 @@ const en = {
 	loadingFonts: "Loading fonts…",
 	noFontCalled: (q: string) => `No font called “${q}”.`,
 	ownFont: "Use my own font file",
-	noVietnamese: "No Vietnamese",
 	yours: "Yours",
 
 	// Making the cards
@@ -530,7 +529,6 @@ const vi: Strings = {
 	loadingFonts: "Đang tải phông chữ…",
 	noFontCalled: (q) => `Không có phông chữ nào tên “${q}”.`,
 	ownFont: "Dùng tệp phông chữ của tôi",
-	noVietnamese: "Không có dấu",
 	yours: "Của bạn",
 
 	wentWrong: "Đã có lỗi xảy ra.",
