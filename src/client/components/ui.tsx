@@ -664,18 +664,23 @@ export function Flag({ lang, size = 22 }: { lang: Lang; size?: number }) {
 }
 
 /**
- * English or Vietnamese for the whole site, shown as two flags. Each flag's name (in its own
- * language) is its accessible name and tooltip.
+ * English or Vietnamese for the whole site: one button showing the current language's flag.
+ * Pressing it switches to the other language; its name (in its own words) is the tooltip and
+ * part of the accessible name.
  */
 export function LangSwitch() {
 	const t = useT();
 	const [lang, setLang] = useLang();
+	const other: Lang = lang === "en" ? "vi" : "en";
 	return (
-		<Segmented<Lang>
-			label={t.language}
-			value={lang}
-			onChange={setLang}
-			options={(["en", "vi"] as const).map((l) => ({ value: l, title: t.langName[l], label: <Flag lang={l} /> }))}
-		/>
+		<button
+			type="button"
+			className="wf-iconbtn wf-langbtn"
+			aria-label={`${t.language}: ${t.langName[lang]}. ${t.langName[other]}`}
+			title={t.langName[other]}
+			onClick={() => setLang(other)}
+		>
+			<Flag lang={lang} size={22} />
+		</button>
 	);
 }
