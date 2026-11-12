@@ -6,7 +6,7 @@ Made by [Wot Da Fong](https://wotdafong.dev). No accounts, no sign-in. Live at [
 
 ## What it does
 
-The whole site comes in English and Vietnamese. A first visit is in Vietnamese when the browser's language or region is Vietnamese (`vi`, any `-VN` locale, or a Vietnamese time zone) and in English otherwise; the flag button in the home page's top bar (or the More menu in the editor) changes it, and the choice is remembered on this device. The three examples (an invitation, a certificate and a name badge, drawn by `lib/sample.ts`) follow the same setting. A person's own design and list are never changed. Every string lives in `src/client/lib/i18n.tsx`. A sun/moon button beside the flag switches between light and dark; until someone presses it the site follows the system setting, and the choice is remembered (`src/client/lib/theme.ts`).
+The whole site comes in English and Vietnamese, with a home page for each: `/` and `/vi/`. A home page's address decides its language. A first visit to `/` moves to `/vi/` before anything is drawn when the browser's language or region is Vietnamese (`vi`, any `-VN` locale, or a Vietnamese time zone), or when Vietnamese was chosen before; the flag button in the home page's top bar (or the More menu in the editor) changes it, moves the address to match, and the choice is remembered on this device. Share links follow the remembered choice or the browser. The three examples (an invitation, a certificate and a name badge, drawn by `lib/sample.ts`) follow the same setting. A person's own design and list are never changed. Every string lives in `src/client/lib/i18n.tsx`. A sun/moon button beside the flag switches between light and dark; until someone presses it the site follows the system setting, and the choice is remembered (`src/client/lib/theme.ts`).
 
 The UI follows the Wot Da Fill design system (Wot Da Fong brand: paper, ink, cobalt, system fonts).
 
@@ -36,6 +36,8 @@ React UI ── canvas render (main thread, same code as preview)    Workers Sta
              ▼
            client-zip (stored, streamed) → download
 ```
+
+Both home pages are pre-rendered at build time (`scripts/prerender.mjs`, after `vite build`) with the app's own components, so search engines and AI crawlers read the whole page, and the app takes it over when it loads (`hydrateRoot` in `main.tsx`). Each gets its own title, description, canonical address, `hreflang` links, social card and JSON-LD (`WebApplication`); the script also writes `sitemap.xml`. Share links (`/t/<id>`) go through the Worker, which serves the empty app (`app.html`) with `X-Robots-Tag: noindex`; any other unknown address gets `404.html` with a 404. Anything the home page draws must give the same result in Node as in the browser: no `window`, `localStorage` or `navigator` while rendering.
 
 All rendering and compression happens in the browser: it's fast (no upload), private (the guest list never leaves the device), and costs nothing per card. Cloudflare serves the app and hosts shared templates. The Worker validates uploads by magic bytes (JPEG/PNG/WebP, TTF/OTF/WOFF/WOFF2), caps sizes, writes `config.json` last so half-written templates never appear, and serves files with `nosniff` and immutable caching.
 

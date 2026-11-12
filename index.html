@@ -3,11 +3,14 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<!--seo-->
 		<title>Wot Da Fill · A card for every name</title>
 		<meta
 			name="description"
 			content="Add your invitation, certificate or name badge, paste your list of names, and download a finished card for each person. Free, no sign-up, and your list never leaves your device."
 		/>
+		<!--/seo-->
+		<!-- Everything between the seo marks is written for each page by scripts/prerender.mjs. -->
 		<meta name="color-scheme" content="light dark" />
 		<!-- Set to the chosen theme's paper by the theme setting (lib/theme.ts). -->
 		<meta name="theme-color" content="#f7f5ee" />
@@ -23,13 +26,14 @@
 			})();
 		</script>
 		<!--
-			On the home page: start fetching the hero's example picture now instead of after the app has
-			loaded. Picks the language as lib/i18n.tsx does, and the size as HERO_SIZES in HomePage.tsx.
+			The English home page sends a Vietnamese visitor to /vi/ before anything is drawn: someone who chose
+			Vietnamese before, or whose browser or time zone is Vietnamese (as lib/i18n.tsx decides). Choosing
+			English is remembered, so they can stay. Search engines crawl in English, so they see both pages.
 		-->
 		<script>
 			(function () {
 				if (location.pathname !== "/") return;
-				var lang = "en";
+				var lang = null;
 				try {
 					lang = localStorage.getItem("wdf:lang");
 				} catch (e) {}
@@ -50,38 +54,16 @@
 							? "vi"
 							: "en";
 				}
-				var base = "/showcase/" + lang + "-invitation-blank";
-				var link = document.createElement("link");
-				link.rel = "preload";
-				link.as = "image";
-				link.fetchPriority = "high";
-				link.imageSizes = "(max-width: 860px) 80vw, 420px";
-				link.imageSrcset = base + "-half.webp 480w, " + base + ".webp 960w";
-				document.head.appendChild(link);
+				if (lang === "vi") location.replace("/vi/" + location.search + location.hash);
 			})();
 		</script>
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-		<link rel="canonical" href="https://fill.wotda.app/" />
-		<!-- What a shared link shows in chats and on social sites. -->
-		<meta property="og:type" content="website" />
-		<meta property="og:site_name" content="Wot Da Fill" />
-		<meta property="og:url" content="https://fill.wotda.app/" />
-		<meta property="og:title" content="Wot Da Fill · A card for every name" />
-		<meta
-			property="og:description"
-			content="Add your invitation, certificate or name badge, paste your list of names, and download a finished card for each person. Free, no sign-up, and your list never leaves your device."
-		/>
-		<meta property="og:image" content="https://fill.wotda.app/og.png" />
-		<meta property="og:image:width" content="1200" />
-		<meta property="og:image:height" content="630" />
-		<meta property="og:image:alt" content="One design, a list of names, and a finished card for every name" />
-		<meta name="twitter:card" content="summary_large_image" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	</head>
 	<body>
-		<div id="root"></div>
+		<div id="root"><!--app--></div>
 		<noscript style="display: block; padding: 24px; font-family: system-ui, sans-serif">
 			Wot Da Fill needs JavaScript. Turn it on in your browser settings, then reload this page. / Wot Da Fill cần JavaScript. Hãy bật
 			JavaScript trong cài đặt trình duyệt rồi tải lại trang.

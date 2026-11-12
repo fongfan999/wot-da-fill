@@ -19,7 +19,23 @@ const store: { lang: Lang; listeners: Set<() => void> } = ((globalThis as { __wd
 	listeners: new Set(),
 });
 
+/** The home page in each language. Elsewhere (share links) the language comes from the person. */
+export const HOME_PATH: Record<Lang, string> = { en: "/", vi: "/vi/" };
+
+/** The language a home page's address asks for, or null for any other page. */
+export function langFromPath(path: string): Lang | null {
+	if (path === "/") return "en";
+	if (path === "/vi" || path === "/vi/") return "vi";
+	return null;
+}
+
 function initialLang(): Lang {
+	// Pre-rendering: the build sets the language for each page.
+	if (typeof window === "undefined") return "en";
+	// A home page's address decides: someone who follows a link to /vi/ asked for Vietnamese.
+	// (index.html sends a Vietnamese visitor on / to /vi/ before anything is drawn.)
+	const fromPath = langFromPath(location.pathname);
+	if (fromPath) return fromPath;
 	try {
 		const saved = localStorage.getItem(KEY);
 		if (saved === "en" || saved === "vi") return saved;
@@ -52,6 +68,11 @@ export function getLang(): Lang {
 
 export function setLang(lang: Lang) {
 	store.lang = lang;
+	if (typeof window === "undefined") return;
+	// On a home page the address follows, so it can be shared and bookmarked in this language.
+	if (langFromPath(location.pathname) && location.pathname !== HOME_PATH[lang]) {
+		history.replaceState(history.state, "", HOME_PATH[lang] + location.search + location.hash);
+	}
 	try {
 		localStorage.setItem(KEY, lang);
 	} catch {
@@ -62,6 +83,7 @@ export function setLang(lang: Lang) {
 }
 
 function applyDocument(lang: Lang) {
+	if (typeof document === "undefined") return;
 	document.documentElement.lang = lang;
 	document.title = STRINGS[lang].docTitle;
 }
@@ -83,7 +105,7 @@ const subscribe = (l: () => void) => {
 
 /** The language, read from the shared store on every render, so no screen can fall behind a change. */
 export function useLang(): [Lang, (lang: Lang) => void] {
-	return [useSyncExternalStore(subscribe, getLang), setLang];
+	return [useSyncExternalStore(subscribe, getLang, getLang), setLang];
 }
 
 const enNum = (n: number) => n.toLocaleString("en-US");
@@ -120,6 +142,8 @@ const viWeights: Record<number, string> = {
 
 const en = {
 	docTitle: "Wot Da Fill · A card for every name",
+	docDescription:
+		"Add your invitation, certificate or name badge, paste your list of names, and download a finished card for each person. Free, no sign-up, and your list never leaves your device.",
 	num: enNum,
 	nOfM: (a: number, b: number) => `${enNum(a)} of ${enNum(b)}`,
 	language: "Language",
@@ -405,6 +429,8 @@ export type Strings = typeof en;
 
 const vi: Strings = {
 	docTitle: "Wot Da Fill · Thiệp riêng cho từng người",
+	docDescription:
+		"Thêm thiệp mời, giấy chứng nhận hay thẻ tên, dán danh sách tên, rồi tải về thiệp hoàn chỉnh cho từng người. Miễn phí, không cần đăng ký, danh sách không rời khỏi thiết bị của bạn.",
 	num: viNum,
 	nOfM: (a, b) => `${viNum(a)} / ${viNum(b)}`,
 	language: "Ngôn ngữ",
@@ -676,5 +702,5 @@ const vi: Strings = {
 	},
 };
 
-const STRINGS: Record<Lang, Strings> = { en, vi };
+export const STRINGS: Record<Lang, Strings> = { en, vi };
 applyDocument(store.lang);

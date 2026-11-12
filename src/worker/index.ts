@@ -150,4 +150,29 @@ function sniffFont(bytes: Uint8Array): string | null {
 	return null;
 }
 
-export default app;
+/**
+ * A share link (/t/<id>): the empty app (dist/client/app.html, written by scripts/prerender.mjs),
+ * which opens the template in the browser. Share links are private, so search engines are told not
+ * to index them. An address that can't be a share link gets the 404 page.
+ */
+async function shareLink(request: Request, env: CloudflareBindings): Promise<Response> {
+	const url = new URL(request.url);
+	const valid = SHARE_PATH.test(url.pathname);
+	let page = await env.ASSETS.fetch(new URL(valid ? "/app" : "/404", url));
+	// The dev server has no app.html or 404.html: its index.html is the empty app.
+	if (!page.ok) page = await env.ASSETS.fetch(new URL("/", url));
+	const headers = new Headers(page.headers);
+	headers.set("x-robots-tag", "noindex");
+	headers.set("cache-control", "no-cache");
+	return new Response(page.body, { status: valid ? 200 : 404, headers });
+}
+
+const SHARE_PATH = /^\/t\/[A-Za-z0-9]{16}\/?$/;
+
+export default {
+	fetch(request, env, ctx) {
+		const { pathname } = new URL(request.url);
+		if (pathname.startsWith("/t/")) return shareLink(request, env);
+		return app.fetch(request, env, ctx);
+	},
+} satisfies ExportedHandler<CloudflareBindings>;

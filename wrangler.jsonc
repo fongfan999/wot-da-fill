@@ -10,11 +10,13 @@
 	"routes": [{ "pattern": "fill.wotda.app", "custom_domain": true }],
 	/**
 	 * The React app is built by Vite (@cloudflare/vite-plugin) and served as static assets.
-	 * Unknown paths (e.g. /t/<id> share links) fall back to index.html; /api/* always hits the Worker.
+	 * The home pages are pre-rendered (scripts/prerender.mjs): / and /vi/. /api/* and /t/* (share links,
+	 * which get the empty app.html) always hit the Worker; any other unknown path gets 404.html.
 	 */
 	"assets": {
-		"not_found_handling": "single-page-application",
-		"run_worker_first": ["/api/*"]
+		"binding": "ASSETS",
+		"not_found_handling": "404-page",
+		"run_worker_first": ["/api/*", "/t/*"]
 	},
 	"observability": {
 		"enabled": true

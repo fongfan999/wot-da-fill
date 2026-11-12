@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 /**
  * Light or dark. Until someone presses the theme button the site follows their system (and keeps
@@ -8,10 +8,13 @@ import { useEffect, useState } from "react";
 export type Theme = "light" | "dark";
 
 const KEY = "wdf:theme";
-const system = window.matchMedia("(prefers-color-scheme: dark)");
-const listeners = new Set<(theme: Theme) => void>();
+const browser = typeof window !== "undefined";
+// Pre-rendering has no window: the page is drawn light, and index.html sets the real theme before it shows.
+const system = browser ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+const listeners = new Set<() => void>();
 
 let chosen: Theme | null = (() => {
+	if (!browser) return null;
 	try {
 		const saved = localStorage.getItem(KEY);
 		return saved === "light" || saved === "dark" ? saved : null;
@@ -21,14 +24,14 @@ let chosen: Theme | null = (() => {
 })();
 
 export function getTheme(): Theme {
-	return chosen ?? (system.matches ? "dark" : "light");
+	return chosen ?? (system?.matches ? "dark" : "light");
 }
 
 function apply() {
 	const theme = getTheme();
 	document.documentElement.dataset.theme = theme;
 	document.querySelector('meta[name="theme-color"]:not([media])')?.setAttribute("content", theme === "dark" ? "#151713" : "#f7f5ee");
-	listeners.forEach((l) => l(theme));
+	listeners.forEach((l) => l());
 }
 
 export function setTheme(theme: Theme) {
@@ -41,16 +44,20 @@ export function setTheme(theme: Theme) {
 	apply();
 }
 
-system.addEventListener("change", () => {
-	if (!chosen) apply();
-});
-apply();
+if (system) {
+	system.addEventListener("change", () => {
+		if (!chosen) apply();
+	});
+	apply();
+}
+
+const subscribe = (l: () => void) => {
+	listeners.add(l);
+	return () => void listeners.delete(l);
+};
+/** What the pre-rendered page was drawn with; a page in dark redraws straight after it loads. */
+const serverTheme = (): Theme => "light";
 
 export function useTheme(): [Theme, (theme: Theme) => void] {
-	const [theme, set] = useState(getTheme);
-	useEffect(() => {
-		listeners.add(set);
-		return () => void listeners.delete(set);
-	}, []);
-	return [theme, setTheme];
+	return [useSyncExternalStore(subscribe, getTheme, serverTheme), setTheme];
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { EXAMPLE, EXAMPLE_KINDS, exampleExtra, type ExampleKind } from "../lib/example";
 import showcaseLayout from "../data/showcase.json";
 import { useLang, useT, type Lang } from "../lib/i18n";
-import { Button, FileDrop, Icon, FeedbackLink, feedbackHref, GITHUB_URL, GitHubLink, LangSwitch, HomeLink, MadeBy, Segmented, ThemeSwitch, type IconName } from "./ui";
+import { Button, FileDrop, Icon, FeedbackLink, feedbackLinkProps, GITHUB_URL, GitHubLink, LangSwitch, HomeLink, MadeBy, Segmented, ThemeSwitch, type IconName } from "./ui";
 
 const IMAGES = "image/jpeg,image/png,image/webp";
 const FACT_ICONS: IconName[] = ["people", "ruler", "download"];
@@ -162,7 +162,7 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 				<a className="wf-foot-link" href={GITHUB_URL} target="_blank" rel="noreferrer">
 					{t.github}
 				</a>
-				<a className="wf-foot-link" href={feedbackHref(t.feedbackSubject, t.feedbackBody)}>
+				<a className="wf-foot-link" {...feedbackLinkProps(t.feedbackSubject, t.feedbackBody)}>
 					{t.feedback}
 				</a>
 			</footer>

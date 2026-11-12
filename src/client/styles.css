@@ -154,6 +154,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .wf-madeby:hover { color: var(--accent); }
 .wf-madeby img { display: block; width: 16px; height: 16px; }
+[data-theme="dark"] .wf-madeby .wf-on-light,
+:root:not([data-theme="dark"]) .wf-madeby .wf-on-dark { display: none; }
 
 /* Button */
 .wf-btn {

@@ -32,7 +32,7 @@ import { inkFor, loadTemplateImage, readableOn, suggestColors } from "./lib/imag
 import { getSampleTemplate } from "./lib/showcase";
 import { EXAMPLE, EXAMPLE_KINDS, exampleGrid, type ExampleKind } from "./lib/example";
 import { messageOf } from "./lib/errors";
-import { tr, useLang, useT } from "./lib/i18n";
+import { getLang, HOME_PATH, langFromPath, tr, useLang, useT } from "./lib/i18n";
 import { useTheme } from "./lib/theme";
 import { loadSharedTemplate, shareTemplate } from "./lib/share";
 import { matchColumn, placeholdersIn, ROW_NUMBER, unknownPlaceholders } from "./lib/text";
@@ -152,7 +152,7 @@ export function Workspace({ start }: { start?: Start }) {
 				if (cancelled) return;
 				console.error(err);
 				say(messageOf(err, tr().sharedCouldntLoad), "error");
-				history.replaceState(null, "", "/");
+				history.replaceState(null, "", HOME_PATH[getLang()]);
 			})
 			.finally(() => !cancelled && setBusy(null));
 		return () => {
@@ -327,7 +327,7 @@ export function Workspace({ start }: { start?: Start }) {
 				setTab("text");
 			}
 			setImage(next);
-			if (location.pathname !== "/") history.replaceState(null, "", "/");
+			if (!langFromPath(location.pathname)) history.replaceState(null, "", HOME_PATH[getLang()]);
 		} catch (err) {
 			say(messageOf(err, t.couldntOpenPicture), "error");
 		} finally {
@@ -489,7 +489,7 @@ export function Workspace({ start }: { start?: Start }) {
 		setSource(null);
 		setExpectedColumns([]);
 		setTab("text");
-		history.replaceState(null, "", "/");
+		history.replaceState(null, "", HOME_PATH[getLang()]);
 		say(
 			t.cleared,
 			"info",

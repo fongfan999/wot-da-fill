@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { tr, useLang, useT, type Lang } from "../lib/i18n";
+import { HOME_PATH, tr, useLang, useT, type Lang } from "../lib/i18n";
 import { useTheme } from "../lib/theme";
 import { LOGO } from "../lib/logo";
 
@@ -109,10 +109,11 @@ export function ProductMark({ size = 26 }: { size?: number }) {
  */
 export function HomeLink({ onClick }: { onClick?: () => void }) {
 	const t = useT();
+	const [lang] = useLang();
 	return (
 		<a
 			className="wf-home-link"
-			href="/"
+			href={HOME_PATH[lang]}
 			// In the editor the logo clears the work (with Undo), so it says so before it is pressed.
 			title={onClick ? t.startOver : undefined}
 			onClick={(e) => {
@@ -129,11 +130,11 @@ export function HomeLink({ onClick }: { onClick?: () => void }) {
 /** The maker credit, the only place the Wot Da Fong mark appears. */
 export function MadeBy() {
 	const t = useT();
-	const [theme] = useTheme();
 	return (
 		<a className="wf-madeby" href="https://wotdafong.dev" target="_blank" rel="noreferrer" aria-label={t.madeBy}>
-			{/* The ink mark on light paper, the paper mark on dark. */}
-			<img src={theme === "dark" ? "/wotdafong-paper.svg" : "/wotdafong-ink.svg"} alt="" width="16" height="16" />
+			{/* The ink mark on light paper, the paper mark on dark; the stylesheet shows the one for the theme. */}
+			<img className="wf-on-light" src="/wotdafong-ink.svg" alt="" width="16" height="16" loading="lazy" />
+			<img className="wf-on-dark" src="/wotdafong-paper.svg" alt="" width="16" height="16" loading="lazy" />
 			Wot Da Fong <span aria-hidden="true">↗</span>
 		</a>
 	);
@@ -857,17 +858,29 @@ export function GitHubLink() {
 /** Where feedback and bug reports go. */
 export const FEEDBACK_EMAIL = "hey@wotdafong.dev";
 
-/** A mailto link with a subject and a short template, so a report arrives with the browser it happened in. */
-export function feedbackHref(subject: string, body: string) {
-	const text = `${body}\n\n---\n${tr().feedbackBrowser}\n${navigator.userAgent}`;
+/**
+ * A mailto link with a subject and a short template, so a report arrives with the browser it happened in.
+ * Without `withBrowser` it leaves the browser out: what a page shows before it has loaded (it is
+ * pre-rendered), with the browser added when the link is pressed (`addBrowser`).
+ */
+export function feedbackHref(subject: string, body: string, withBrowser = true) {
+	const text = withBrowser ? `${body}\n\n---\n${tr().feedbackBrowser}\n${navigator.userAgent}` : body;
 	return `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+}
+
+/** A feedback link's props: the plain address in the page, the browser added on the way out. */
+export function feedbackLinkProps(subject: string, body: string) {
+	return {
+		href: feedbackHref(subject, body, false),
+		onClick: (e: { currentTarget: HTMLAnchorElement }) => void (e.currentTarget.href = feedbackHref(subject, body)),
+	};
 }
 
 /** A round button that opens an email for feedback or a bug report, beside the GitHub link. */
 export function FeedbackLink() {
 	const t = useT();
 	return (
-		<a className="wf-iconbtn" href={feedbackHref(t.feedbackSubject, t.feedbackBody)} aria-label={t.feedback} title={t.feedback}>
+		<a className="wf-iconbtn" {...feedbackLinkProps(t.feedbackSubject, t.feedbackBody)} aria-label={t.feedback} title={t.feedback}>
 			<Icon name="mail" />
 		</a>
 	);
