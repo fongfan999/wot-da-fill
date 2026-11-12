@@ -408,6 +408,29 @@ const en = {
 		step3Text: "Pick a font and colour, then download one card per person in a single zip. Each card is named after the person it is for.",
 		trustTitle: "Made to be trusted with a guest list",
 		faqTitle: "Questions",
+		faq: [
+			[
+				"What is Wot Da Fill?",
+				"Wot Da Fill is a free web app that puts each name from a list onto a copy of your design: invitations, certificates, name badges or any picture. You add the design and the list, place the name, and download one finished card per person in a zip.",
+			],
+			["Do I need to sign up or install anything?", "No. It runs in your web browser, with no account and nothing to download."],
+			[
+				"Is my list of names private?",
+				"Yes. The cards are made on your device, in your browser, and the list is never uploaded. If you share a layout, only the design, the text boxes and any fonts you added are uploaded, never the names.",
+			],
+			[
+				"What files can I use?",
+				"Designs: JPG, PNG or WebP pictures. Lists: paste from Excel or Google Sheets, or drop an XLSX, XLS, ODS, CSV or TSV file. Fonts: all of Google Fonts, or your own TTF, OTF or WOFF file.",
+			],
+			[
+				"What do I get?",
+				"One picture per name, in the same format and size as your design, compressed to stay sharp and small, all in one zip. Each file is named after its person, and the zip includes a list of which card is whose.",
+			],
+			[
+				"Does it work in Vietnamese?",
+				"Yes. The whole site comes in English and Vietnamese, Vietnamese names keep their accents, and Vietnamese fonts such as SVN- and UTM- fonts work.",
+			],
+		] as [string, string][],
 		usesTitle: "What people make with it",
 		facts: [
 			["Your list stays with you", "The cards are made in your browser. Names are never uploaded anywhere."],
@@ -687,6 +710,29 @@ const vi: Strings = {
 		step3Text: "Chọn phông chữ và màu, rồi tải về một tệp zip, mỗi người một thiệp. Mỗi thiệp được đặt tên theo tên người nhận.",
 		trustTitle: "Yên tâm giao danh sách khách mời",
 		faqTitle: "Câu hỏi thường gặp",
+		faq: [
+			[
+				"Wot Da Fill là gì?",
+				"Wot Da Fill là ứng dụng web miễn phí giúp điền từng tên trong danh sách lên một bản sao thiết kế của bạn: thiệp mời, giấy khen, thẻ tên hay bất kỳ ảnh nào. Bạn thêm thiết kế và danh sách, đặt vị trí tên, rồi tải về mỗi người một thiệp hoàn chỉnh trong một tệp zip.",
+			],
+			["Có cần đăng ký hay cài đặt gì không?", "Không. Wot Da Fill chạy ngay trong trình duyệt, không cần tài khoản, không cần tải gì về."],
+			[
+				"Danh sách tên có được giữ riêng tư không?",
+				"Có. Thiệp được tạo ngay trên thiết bị của bạn, trong trình duyệt, và danh sách không bao giờ được tải lên. Khi bạn chia sẻ bố cục, chỉ thiết kế, các ô chữ và phông chữ bạn thêm được tải lên, không bao giờ kèm danh sách tên.",
+			],
+			[
+				"Dùng được những loại tệp nào?",
+				"Thiết kế: ảnh JPG, PNG hoặc WebP. Danh sách: dán từ Excel, Google Sheets, hoặc thả tệp XLSX, XLS, ODS, CSV, TSV. Phông chữ: toàn bộ Google Fonts, hoặc tệp TTF, OTF, WOFF của bạn.",
+			],
+			[
+				"Tôi nhận được gì?",
+				"Mỗi người một ảnh, cùng định dạng và kích thước với thiết kế, được nén để vừa nhẹ vừa sắc nét, gom trong một tệp zip. Mỗi tệp đặt tên theo người nhận, và trong tệp zip có danh sách cho biết thiệp nào của ai.",
+			],
+			[
+				"Có dùng được với tiếng Việt không?",
+				"Có. Toàn bộ trang có tiếng Việt và tiếng Anh, tên tiếng Việt giữ nguyên dấu, và các phông Việt hóa như SVN-, UTM- đều dùng được.",
+			],
+		],
 		usesTitle: "Mọi người dùng để làm gì",
 		facts: [
 			["Danh sách chỉ ở trên thiết bị của bạn", "Thiệp được tạo ngay trong trình duyệt. Tên không bao giờ được tải lên bất cứ đâu."],

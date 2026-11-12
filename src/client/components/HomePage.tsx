@@ -163,19 +163,17 @@ export function HomePage({
 					</dl>
 				</section>
 
-				{use && (
-					<section className="wf-home-wrap wf-home-section">
-						<h2 className="wf-home-h2">{h.faqTitle}</h2>
-						<dl className="wf-home-faq">
-							{use.faq.map(([q, a]) => (
-								<div key={q}>
-									<dt>{q}</dt>
-									<dd>{a}</dd>
-								</div>
-							))}
-						</dl>
-					</section>
-				)}
+				<section className="wf-home-wrap wf-home-section">
+					<h2 className="wf-home-h2">{h.faqTitle}</h2>
+					<dl className="wf-home-faq">
+						{(use ? use.faq : h.faq).map(([q, a]) => (
+							<div key={q}>
+								<dt>{q}</dt>
+								<dd>{a}</dd>
+							</div>
+						))}
+					</dl>
+				</section>
 
 				<section className="wf-home-wrap wf-home-section wf-home-end">
 					<h2 className="wf-home-h2">{h.endTitle}</h2>

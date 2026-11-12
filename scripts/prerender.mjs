@@ -38,9 +38,11 @@ try {
 }
 const { renderPage, STRINGS, PAGE_IDS, PAGE_PATH, USE_COPY } = render;
 
-/** A page's words for the head: the home page's from the strings, a problem page's from its copy. */
+/** A page's words: the home page's from the strings, a problem page's from its copy. */
 const copy = (id, lang) =>
-	id === "home" ? { title: STRINGS[lang].docTitle, description: STRINGS[lang].docDescription } : USE_COPY[id][lang];
+	id === "home"
+		? { title: STRINGS[lang].docTitle, description: STRINGS[lang].docDescription, faq: STRINGS[lang].home.faq }
+		: USE_COPY[id][lang];
 
 const esc = (s) => s.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
@@ -79,35 +81,26 @@ function seo(id, lang, { indexable }) {
 }
 
 /**
- * What the page is, for search engines and AI answers: a free web app and who makes it, and on a
- * problem page, the page itself with its questions and answers.
+ * What the page is, for search engines and AI answers: the page with its questions and answers,
+ * the free web app it is about, and who makes it.
  */
 function structuredData(id, lang) {
 	const t = STRINGS[lang];
 	const url = ORIGIN + PAGE_PATH[id][lang];
-	const page =
-		id === "home"
-			? []
-			: [
-					{
-						"@type": ["WebPage", "FAQPage"],
-						"@id": `${url}#page`,
-						url,
-						name: USE_COPY[id][lang].title,
-						description: USE_COPY[id][lang].description,
-						inLanguage: lang,
-						about: { "@id": `${ORIGIN}/#app` },
-						mainEntity: USE_COPY[id][lang].faq.map(([q, a]) => ({
-							"@type": "Question",
-							name: q,
-							acceptedAnswer: { "@type": "Answer", text: a },
-						})),
-					},
-				];
+	const { title, description, faq } = copy(id, lang);
 	const data = {
 		"@context": "https://schema.org",
 		"@graph": [
-			...page,
+			{
+				"@type": ["WebPage", "FAQPage"],
+				"@id": `${url}#page`,
+				url,
+				name: title,
+				description,
+				inLanguage: lang,
+				about: { "@id": `${ORIGIN}/#app` },
+				mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })),
+			},
 			{
 				"@type": "WebApplication",
 				"@id": `${ORIGIN}/#app`,
@@ -177,4 +170,32 @@ ${LANGS.map((l) => `\t\t<xhtml:link rel="alternate" hreflang="${l}" href="${ORIG
 </urlset>
 `;
 await writeFile(new URL("sitemap.xml", out), sitemap);
-console.log("wrote app.html, 404.html and sitemap.xml");
+
+// llms.txt (llmstxt.org): the site in plain words for AI assistants, with every page in both
+// languages and the home page's questions answered.
+const md = (s) => s.replaceAll("“", '"').replaceAll("”", '"').replaceAll("’", "'");
+const pageLines = (lang) =>
+	PAGE_IDS.map((id) => {
+		const name = id === "home" ? (lang === "en" ? "Home" : "Trang chủ") : USE_COPY[id][lang].nav;
+		return `- [${md(name)}](${ORIGIN + PAGE_PATH[id][lang]}): ${md(copy(id, lang).description)}`;
+	}).join("\n");
+const llms = `# Wot Da Fill
+
+> ${md(STRINGS.en.docDescription)}
+
+${md(STRINGS.en.home.faq[0][1])} Made by Wot Da Fong (https://wotdafong.dev). Source code: https://github.com/fongfan999/wot-da-fill.
+
+## Pages
+
+${pageLines("en")}
+
+## Tiếng Việt
+
+${pageLines("vi")}
+
+## Questions
+
+${STRINGS.en.home.faq.map(([q, a]) => `### ${md(q)}\n\n${md(a)}`).join("\n\n")}
+`;
+await writeFile(new URL("llms.txt", out), llms);
+console.log("wrote app.html, 404.html, sitemap.xml and llms.txt");
