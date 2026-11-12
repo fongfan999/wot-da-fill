@@ -70,6 +70,8 @@ Then:
 pnpm run deploy
 ```
 
+After deploying, `scripts/indexnow.mjs` tells search engines that use IndexNow (Bing and others) that every page in the sitemap changed, so they crawl again soon. Its key is the 32-character `.txt` file in `public/`; `pnpm indexnow --dry-run` shows what it would send. Registering the site with Google and Bing, and the copy for listings and communities, is in [docs/launch-copy.md](docs/launch-copy.md).
+
 After changing bindings in `wrangler.jsonc`, run `pnpm cf-typegen`.
 
 ## Project layout
