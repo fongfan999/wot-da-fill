@@ -10,13 +10,24 @@
 	"routes": [{ "pattern": "fill.wotda.app", "custom_domain": true }],
 	/**
 	 * The React app is built by Vite (@cloudflare/vite-plugin) and served as static assets.
-	 * The home pages are pre-rendered (scripts/prerender.mjs): / and /vi/. /api/* and /t/* (share links,
-	 * which get the empty app.html) always hit the Worker; any other unknown path gets 404.html.
+	 * The pages are pre-rendered (scripts/prerender.mjs). The Worker runs first for everything except
+	 * scripts, styles and pictures: /api/*, share links (/t/*, which get the empty app.html), and the
+	 * pages, which it counts (src/worker/visits.ts) and fetches from the assets. Any other unknown
+	 * path gets 404.html.
 	 */
 	"assets": {
 		"binding": "ASSETS",
 		"not_found_handling": "404-page",
-		"run_worker_first": ["/api/*", "/t/*"]
+		"run_worker_first": [
+			"/*",
+			"!/assets/*",
+			"!/showcase/*",
+			"!/favicon.svg",
+			"!/apple-touch-icon.png",
+			"!/og.png",
+			"!/wotdafong-ink.svg",
+			"!/wotdafong-paper.svg"
+		]
 	},
 	"observability": {
 		"enabled": true
@@ -36,6 +47,16 @@
 	 * There is no auth, so share uploads are rate limited per IP.
 	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
 	 */
+	/**
+	 * One row per page opened: where it came from (AI assistants, search, social) and which crawler,
+	 * if any. No IP addresses or cookies. Read with: pnpm traffic. Created on the first write.
+	 */
+	"analytics_engine_datasets": [
+		{
+			"binding": "VISITS",
+			"dataset": "wot_da_fill_visits"
+		}
+	],
 	"ratelimits": [
 		{
 			"name": "SHARE_LIMITER",

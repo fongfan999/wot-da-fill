@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { logVisit } from "./visits";
 
 /**
  * API for shareable templates. A template is the design image, the text-field layout
@@ -169,10 +170,17 @@ async function shareLink(request: Request, env: CloudflareBindings): Promise<Res
 
 const SHARE_PATH = /^\/t\/[A-Za-z0-9]{16}\/?$/;
 
+/**
+ * The Worker runs first for the API, share links and every page (run_worker_first in
+ * wrangler.jsonc); scripts, styles and pictures are served without it. Pages and share links are
+ * counted (visits.ts) on their way out.
+ */
 export default {
-	fetch(request, env, ctx) {
-		const { pathname } = new URL(request.url);
-		if (pathname.startsWith("/t/")) return shareLink(request, env);
-		return app.fetch(request, env, ctx);
+	async fetch(request, env, ctx) {
+		const url = new URL(request.url);
+		if (url.pathname.startsWith("/api/")) return app.fetch(request, env, ctx);
+		const response = url.pathname.startsWith("/t/") ? await shareLink(request, env) : await env.ASSETS.fetch(request);
+		logVisit(env.VISITS, request, url, response);
+		return response;
 	},
 } satisfies ExportedHandler<CloudflareBindings>;

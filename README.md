@@ -74,6 +74,17 @@ After deploying, `scripts/indexnow.mjs` tells search engines that use IndexNow (
 
 After changing bindings in `wrangler.jsonc`, run `pnpm cf-typegen`.
 
+## Traffic
+
+The Worker runs in front of every page (not scripts, styles or pictures) and writes one row per page opened to Workers Analytics Engine (`src/worker/visits.ts`): the page, where the visit came from (AI assistants such as ChatGPT, Perplexity, Gemini and Claude, search, social, direct), which crawler it was if it was one (GPTBot, ClaudeBot, Googlebot and so on), the country and the status. It keeps no IP addresses, full user agents, cookies or query strings, and nothing from anyone's list. Rows are kept for three months.
+
+```sh
+pnpm traffic            # the last 28 days
+pnpm traffic --days 7
+```
+
+It needs `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` in the environment or in `.env` (git-ignored); make the token at dash.cloudflare.com/profile/api-tokens with Account > Account Analytics > Read. `pnpm traffic --sql` prints the queries, for running them elsewhere.
+
 ## Project layout
 
 | Path | What |

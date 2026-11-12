@@ -90,4 +90,6 @@ Elsewhere on Reddit (r/weddingplanning, r/Teachers, r/eventplanning), only answe
 
 ## 7. Check in after 4 to 6 weeks
 
+Run `pnpm traffic` to see how many people arrive from ChatGPT, Perplexity, Gemini, Claude and search, which pages they land on, and which AI crawlers read the site (see the README's Traffic section for the token it needs). Addresses that 404 show what people expected to find.
+
 In Search Console's Performance report, look at which searches show the pages, and which pages get impressions but few clicks (rewrite those titles and descriptions in `src/client/lib/pages.ts`). Searches with no matching page are candidates for the next problem page.
