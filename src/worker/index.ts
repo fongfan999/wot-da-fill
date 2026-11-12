@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { logVisit } from "./visits";
+import { logVisit, SITE_HOST } from "./visits";
 
 /**
  * API for shareable templates. A template is the design image, the text-field layout
@@ -178,15 +178,29 @@ const SHARE_PATH = /^\/t\/[A-Za-z0-9]{16}\/?$/;
 export default {
 	async fetch(request, env, ctx) {
 		const url = new URL(request.url);
-		if (url.pathname.startsWith("/api/")) return app.fetch(request, env, ctx);
-		let response = url.pathname.startsWith("/t/") ? await shareLink(request, env) : await env.ASSETS.fetch(request);
-		// Cloudflare serves .txt as plain "text/plain", which browsers read as Windows-1252, so the
-		// Vietnamese in llms.txt comes out garbled. Every text file here is UTF-8; say so.
-		if (response.headers.get("content-type") === "text/plain") {
-			response = new Response(response.body, response);
-			response.headers.set("content-type", "text/plain; charset=utf-8");
+		// The site also answers on plain http; send everyone to https, for good (308 keeps the method).
+		if (url.protocol === "http:" && url.hostname === SITE_HOST) {
+			url.protocol = "https:";
+			return Response.redirect(url.toString(), 308);
 		}
-		logVisit(env.VISITS, request, url, response);
-		return response;
+		if (url.pathname.startsWith("/api/")) return app.fetch(request, env, ctx);
+		const response = url.pathname.startsWith("/t/") ? await shareLink(request, env) : await env.ASSETS.fetch(request);
+		const out = withCharset(response);
+		logVisit(env.VISITS, request, url, out);
+		return out;
 	},
 } satisfies ExportedHandler<CloudflareBindings>;
+
+/**
+ * Cloudflare serves the site's text (pages, llms.txt, robots.txt, the sitemap) as "text/html",
+ * "text/plain" and so on with no charset. Browsers then read .txt files as Windows-1252, garbling
+ * the Vietnamese in llms.txt, and many crawlers and AI tools read every text type that way (pages
+ * included), since they don't look for <meta charset>. Everything here is UTF-8, so say so.
+ */
+function withCharset(response: Response): Response {
+	const type = response.headers.get("content-type");
+	if (!type || /charset=/i.test(type) || !/^(text\/|application\/(xml|json|javascript)\b)/i.test(type)) return response;
+	const out = new Response(response.body, response);
+	out.headers.set("content-type", `${type}; charset=utf-8`);
+	return out;
+}

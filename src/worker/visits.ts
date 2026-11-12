@@ -13,7 +13,7 @@
  *   blob7 bot name · blob8 country · double1 status · index1 path
  */
 
-const SITE_HOST = "fill.wotda.app";
+export const SITE_HOST = "fill.wotda.app";
 
 /** The files besides pages worth knowing about: who reads them says who is crawling. */
 const FILES = new Set(["/robots.txt", "/llms.txt", "/sitemap.xml"]);
