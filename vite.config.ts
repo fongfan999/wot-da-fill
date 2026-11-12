@@ -3,8 +3,9 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 
 /**
- * In the dev server the home pages aren't pre-rendered, so /vi/ is the same index.html as /: the
- * app picks the language from the address. (The build writes vi/index.html; scripts/prerender.mjs.)
+ * In the dev server the pages aren't pre-rendered, so every page's address (/vi/,
+ * /invitation-names, /vi/dien-ten-thiep-moi: lib/pages.ts) gets the same index.html as /, and the
+ * app picks the page and language from the address. The build writes a file for each.
  */
 const devHomePages: Plugin = {
 	name: "wdf-dev-home-pages",
@@ -13,7 +14,8 @@ const devHomePages: Plugin = {
 	apply: "serve",
 	configureServer(server) {
 		server.middlewares.use((req, _res, next) => {
-			const match = req.url?.match(/^\/vi\/?(\?.*)?$/);
+			// One or two lowercase words, like /vi/ or /vi/the-ten-tu-excel; never files, /t/ or /api/.
+			const match = req.url?.match(/^\/(?:vi\/?)?(?:[a-z0-9]+-[a-z0-9-]+)?\/?(\?.*)?$/);
 			// The Cloudflare plugin reads originalUrl, so both change.
 			if (match) req.url = req.originalUrl = "/" + (match[1] ?? "");
 			next();

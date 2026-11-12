@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { HomePage } from "./components/HomePage";
+import { pageFromPath } from "./lib/pages";
 import type { Start } from "./Workspace";
 
 const loadWorkspace = () => import("./Workspace");
@@ -23,7 +24,9 @@ export function App() {
 		return () => window.removeEventListener("load", prefetch);
 	}, []);
 
-	const home = <HomePage onFile={(file) => setStart({ file })} onExample={(example) => setStart({ example })} />;
+	// Which page this address is (the home page or a problem page); anything else shows the home page.
+	const page = pageFromPath(location.pathname)?.id ?? "home";
+	const home = <HomePage page={page} onFile={(file) => setStart({ file })} onExample={(example) => setStart({ example })} />;
 	if (!start && !shared) return home;
 	// While the editor downloads, the home page stays as it was; a shared link shows nothing yet.
 	return (

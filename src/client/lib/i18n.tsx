@@ -1,4 +1,5 @@
 import { useSyncExternalStore, type ReactNode } from "react";
+import { langFromPath, PAGE_PATH, pageFromPath, pageTitle } from "./pages";
 
 /**
  * The site's language: English or Vietnamese. A first visit follows the browser; after that the
@@ -19,20 +20,12 @@ const store: { lang: Lang; listeners: Set<() => void> } = ((globalThis as { __wd
 	listeners: new Set(),
 });
 
-/** The home page in each language. Elsewhere (share links) the language comes from the person. */
-export const HOME_PATH: Record<Lang, string> = { en: "/", vi: "/vi/" };
-
-/** The language a home page's address asks for, or null for any other page. */
-export function langFromPath(path: string): Lang | null {
-	if (path === "/") return "en";
-	if (path === "/vi" || path === "/vi/") return "vi";
-	return null;
-}
+export { HOME_PATH, langFromPath } from "./pages";
 
 function initialLang(): Lang {
 	// Pre-rendering: the build sets the language for each page.
 	if (typeof window === "undefined") return "en";
-	// A home page's address decides: someone who follows a link to /vi/ asked for Vietnamese.
+	// A page's address decides: someone who follows a link to /vi/ asked for Vietnamese.
 	// (index.html sends a Vietnamese visitor on / to /vi/ before anything is drawn.)
 	const fromPath = langFromPath(location.pathname);
 	if (fromPath) return fromPath;
@@ -69,9 +62,11 @@ export function getLang(): Lang {
 export function setLang(lang: Lang) {
 	store.lang = lang;
 	if (typeof window === "undefined") return;
-	// On a home page the address follows, so it can be shared and bookmarked in this language.
-	if (langFromPath(location.pathname) && location.pathname !== HOME_PATH[lang]) {
-		history.replaceState(history.state, "", HOME_PATH[lang] + location.search + location.hash);
+	// On one of the site's pages the address follows, to the same page in this language, so it can
+	// be shared and bookmarked as it is.
+	const page = pageFromPath(location.pathname);
+	if (page && page.lang !== lang) {
+		history.replaceState(history.state, "", PAGE_PATH[page.id][lang] + location.search + location.hash);
 	}
 	try {
 		localStorage.setItem(KEY, lang);
@@ -85,7 +80,8 @@ export function setLang(lang: Lang) {
 function applyDocument(lang: Lang) {
 	if (typeof document === "undefined") return;
 	document.documentElement.lang = lang;
-	document.title = STRINGS[lang].docTitle;
+	const page = pageFromPath(location.pathname);
+	document.title = pageTitle(page?.id ?? "home", lang, STRINGS[lang].docTitle);
 }
 
 /** The current language's strings, for code outside React (error messages from the libraries). */
@@ -411,6 +407,8 @@ const en = {
 		step3: "Download every card",
 		step3Text: "Pick a font and colour, then download one card per person in a single zip. Each card is named after the person it is for.",
 		trustTitle: "Made to be trusted with a guest list",
+		faqTitle: "Questions",
+		usesTitle: "What people make with it",
 		facts: [
 			["Your list stays with you", "The cards are made in your browser. Names are never uploaded anywhere."],
 			["Long names fit", "Long names shrink to fit, and you are told which ones need a look before you download."],
@@ -688,6 +686,8 @@ const vi: Strings = {
 		step3: "Tải về tất cả thiệp",
 		step3Text: "Chọn phông chữ và màu, rồi tải về một tệp zip, mỗi người một thiệp. Mỗi thiệp được đặt tên theo tên người nhận.",
 		trustTitle: "Yên tâm giao danh sách khách mời",
+		faqTitle: "Câu hỏi thường gặp",
+		usesTitle: "Mọi người dùng để làm gì",
 		facts: [
 			["Danh sách chỉ ở trên thiết bị của bạn", "Thiệp được tạo ngay trong trình duyệt. Tên không bao giờ được tải lên bất cứ đâu."],
 			["Tên dài vẫn vừa", "Tên dài tự thu nhỏ cho vừa. Tên nào cần xem lại, bạn sẽ được báo trước khi tải về."],

@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-// Runs after `vite build`. Turns the built index.html into the site's pages:
-//   index.html     the English home page, drawn in full (what search engines and AI crawlers read)
-//   vi/index.html  the Vietnamese home page, drawn in full
-//   app.html       the empty app, for share links (/t/<id>, served by the Worker); not indexed
-//   404.html       the empty app for any other address, served with a 404; not indexed
-//   sitemap.xml    the home pages, with each one's other language
+// Runs after `vite build`. Turns the built index.html into the site's pages (src/client/lib/pages.ts):
+//   index.html, vi/index.html          the home page in each language, drawn in full
+//   invitation-names.html, vi/…html    each problem page in each language, drawn in full
+//   app.html                           the empty app, for share links (/t/<id>, served by the Worker); not indexed
+//   404.html                           the empty app for any other address, served with a 404; not indexed
+//   sitemap.xml                        every page, with its other language
 // Each page gets its own title, description, canonical address, language links, social card and
-// structured data. The home page is drawn by the app's own code (src/client/prerender.tsx).
+// structured data (with its questions as FAQPage). Pages are drawn by the app's own code
+// (src/client/prerender.tsx), so they are what search engines and AI crawlers read.
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import react from "@vitejs/plugin-react";
 import { createServer } from "vite";
@@ -14,7 +15,6 @@ import { createServer } from "vite";
 const ORIGIN = "https://fill.wotda.app";
 const out = new URL("../dist/client/", import.meta.url);
 const LANGS = ["en", "vi"];
-const PATH = { en: "/", vi: "/vi/" };
 const LOCALE = { en: "en_US", vi: "vi_VN" };
 
 const template = await readFile(new URL("index.html", out), "utf8");
@@ -36,23 +36,25 @@ try {
 } finally {
 	await vite.close();
 }
-const { renderHome, STRINGS } = render;
+const { renderPage, STRINGS, PAGE_IDS, PAGE_PATH, USE_COPY } = render;
+
+/** A page's words for the head: the home page's from the strings, a problem page's from its copy. */
+const copy = (id, lang) =>
+	id === "home" ? { title: STRINGS[lang].docTitle, description: STRINGS[lang].docDescription } : USE_COPY[id][lang];
 
 const esc = (s) => s.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 /** The head tags for a page: everything between <!--seo--> and <!--/seo-->. */
-function seo(lang, { indexable }) {
+function seo(id, lang, { indexable }) {
 	const t = STRINGS[lang];
-	const url = ORIGIN + PATH[lang];
-	const tags = [
-		`<title>${esc(t.docTitle)}</title>`,
-		`<meta name="description" content="${esc(t.docDescription)}" />`,
-	];
+	const { title, description } = copy(id, lang);
+	const url = ORIGIN + PAGE_PATH[id][lang];
+	const tags = [`<title>${esc(title)}</title>`, `<meta name="description" content="${esc(description)}" />`];
 	if (indexable) {
 		tags.push(
 			`<link rel="canonical" href="${url}" />`,
-			...LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${ORIGIN + PATH[l]}" />`),
-			`<link rel="alternate" hreflang="x-default" href="${ORIGIN}/" />`,
+			...LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${ORIGIN + PAGE_PATH[id][l]}" />`),
+			`<link rel="alternate" hreflang="x-default" href="${ORIGIN + PAGE_PATH[id].en}" />`,
 		);
 	} else {
 		tags.push(`<meta name="robots" content="noindex" />`);
@@ -64,29 +66,53 @@ function seo(lang, { indexable }) {
 		`<meta property="og:locale" content="${LOCALE[lang]}" />`,
 		...LANGS.filter((l) => l !== lang).map((l) => `<meta property="og:locale:alternate" content="${LOCALE[l]}" />`),
 		...(indexable ? [`<meta property="og:url" content="${url}" />`] : []),
-		`<meta property="og:title" content="${esc(t.docTitle)}" />`,
-		`<meta property="og:description" content="${esc(t.docDescription)}" />`,
+		`<meta property="og:title" content="${esc(title)}" />`,
+		`<meta property="og:description" content="${esc(description)}" />`,
 		`<meta property="og:image" content="${ORIGIN}/og.png" />`,
 		`<meta property="og:image:width" content="1200" />`,
 		`<meta property="og:image:height" content="630" />`,
 		`<meta property="og:image:alt" content="${esc(t.home.pictureLabel)}" />`,
 		`<meta name="twitter:card" content="summary_large_image" />`,
 	);
-	if (indexable) tags.push(`<script type="application/ld+json">${structuredData(lang)}</script>`);
+	if (indexable) tags.push(`<script type="application/ld+json">${structuredData(id, lang)}</script>`);
 	return tags.map((tag) => `\t\t${tag}`).join("\n");
 }
 
-/** What the page is, for search engines and AI answers: a free web app, and who makes it. */
-function structuredData(lang) {
+/**
+ * What the page is, for search engines and AI answers: a free web app and who makes it, and on a
+ * problem page, the page itself with its questions and answers.
+ */
+function structuredData(id, lang) {
 	const t = STRINGS[lang];
+	const url = ORIGIN + PAGE_PATH[id][lang];
+	const page =
+		id === "home"
+			? []
+			: [
+					{
+						"@type": ["WebPage", "FAQPage"],
+						"@id": `${url}#page`,
+						url,
+						name: USE_COPY[id][lang].title,
+						description: USE_COPY[id][lang].description,
+						inLanguage: lang,
+						about: { "@id": `${ORIGIN}/#app` },
+						mainEntity: USE_COPY[id][lang].faq.map(([q, a]) => ({
+							"@type": "Question",
+							name: q,
+							acceptedAnswer: { "@type": "Answer", text: a },
+						})),
+					},
+				];
 	const data = {
 		"@context": "https://schema.org",
 		"@graph": [
+			...page,
 			{
 				"@type": "WebApplication",
 				"@id": `${ORIGIN}/#app`,
 				name: "Wot Da Fill",
-				url: ORIGIN + PATH[lang],
+				url: ORIGIN + PAGE_PATH.home[lang],
 				description: t.docDescription,
 				inLanguage: lang,
 				availableLanguage: LANGS,
@@ -106,7 +132,7 @@ function structuredData(lang) {
 	return JSON.stringify(data).replaceAll("<", "\\u003c");
 }
 
-function page(lang, { indexable, body = "" }) {
+function page(id, lang, { indexable, body = "" }) {
 	// React puts the hero picture's preloads ahead of the page; they belong in the head, where the
 	// browser finds them first and where they don't sit in the way of the app taking the page over.
 	const preloads = [];
@@ -114,32 +140,39 @@ function page(lang, { indexable, body = "" }) {
 		preloads.push(...links.match(/<link [^>]*\/>/g));
 		return "";
 	});
-	const tags = seo(lang, { indexable }) + preloads.map((l) => `\n\t\t${l}`).join("");
+	const tags = seo(id, lang, { indexable }) + preloads.map((l) => `\n\t\t${l}`).join("");
 	const head = template.replace(/[ \t]*<!--seo-->[\s\S]*?<!--\/seo-->/, `\t\t<!--seo-->\n${tags}\n\t\t<!--/seo-->`);
 	return head.replace('<html lang="en">', `<html lang="${lang}">`).replace("<!--app-->", body);
 }
 
-for (const lang of LANGS) {
-	const html = renderHome(lang);
-	const dir = new URL(PATH[lang].slice(1), out);
-	await mkdir(dir, { recursive: true });
-	await writeFile(new URL("index.html", dir), page(lang, { indexable: true, body: html }));
-	console.log(`prerendered ${PATH[lang]} (${(html.length / 1024).toFixed(1)} KB of HTML)`);
+/** Where a page's file goes: /vi/ → vi/index.html, /vi/the-ten-tu-excel → vi/the-ten-tu-excel.html. */
+const fileFor = (path) => (path.endsWith("/") ? `${path.slice(1)}index.html` : `${path.slice(1)}.html`);
+
+for (const id of PAGE_IDS) {
+	for (const lang of LANGS) {
+		const html = renderPage(id, lang);
+		const file = new URL(fileFor(PAGE_PATH[id][lang]), out);
+		await mkdir(new URL(".", file), { recursive: true });
+		await writeFile(file, page(id, lang, { indexable: true, body: html }));
+		console.log(`prerendered ${PAGE_PATH[id][lang]} (${(html.length / 1024).toFixed(1)} KB of HTML)`);
+	}
 }
 // The empty app: the language is picked in the browser, so it starts with the English head.
-await writeFile(new URL("app.html", out), page("en", { indexable: false }));
-await writeFile(new URL("404.html", out), page("en", { indexable: false }));
+await writeFile(new URL("app.html", out), page("home", "en", { indexable: false }));
+await writeFile(new URL("404.html", out), page("home", "en", { indexable: false }));
 
 const today = new Date().toISOString().slice(0, 10);
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${LANGS.map(
-	(lang) => `\t<url>
-\t\t<loc>${ORIGIN + PATH[lang]}</loc>
+${PAGE_IDS.flatMap((id) =>
+	LANGS.map(
+		(lang) => `\t<url>
+\t\t<loc>${ORIGIN + PAGE_PATH[id][lang]}</loc>
 \t\t<lastmod>${today}</lastmod>
-${LANGS.map((l) => `\t\t<xhtml:link rel="alternate" hreflang="${l}" href="${ORIGIN + PATH[l]}" />`).join("\n")}
-\t\t<xhtml:link rel="alternate" hreflang="x-default" href="${ORIGIN}/" />
+${LANGS.map((l) => `\t\t<xhtml:link rel="alternate" hreflang="${l}" href="${ORIGIN + PAGE_PATH[id][l]}" />`).join("\n")}
+\t\t<xhtml:link rel="alternate" hreflang="x-default" href="${ORIGIN + PAGE_PATH[id].en}" />
 \t</url>`,
+	),
 ).join("\n")}
 </urlset>
 `;

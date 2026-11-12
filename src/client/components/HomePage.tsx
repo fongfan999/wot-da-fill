@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { EXAMPLE, EXAMPLE_KINDS, exampleExtra, type ExampleKind } from "../lib/example";
 import showcaseLayout from "../data/showcase.json";
 import { useLang, useT, type Lang } from "../lib/i18n";
+import { PAGE_PATH, USE_COPY, USE_IDS, USE_KIND, type PageId } from "../lib/pages";
 import { Button, FileDrop, Icon, FeedbackLink, feedbackLinkProps, GITHUB_URL, GitHubLink, LangSwitch, HomeLink, MadeBy, Segmented, ThemeSwitch, type IconName } from "./ui";
 
 const IMAGES = "image/jpeg,image/png,image/webp";
@@ -19,13 +20,23 @@ const HERO_SIZES = "(max-width: 860px) 80vw, 420px";
  * the page, the drop zone, or one of the examples leaves it for the editor. The language switch
  * in its bar changes the whole site, the examples included.
  */
-export function HomePage({ onFile, onExample }: { onFile(file: File): void; onExample(kind: ExampleKind): void }) {
+export function HomePage({
+	page = "home",
+	onFile,
+	onExample,
+}: {
+	/** The home page, or one of the problem pages (lib/pages.ts): its own heading, details and questions. */
+	page?: PageId;
+	onFile(file: File): void;
+	onExample(kind: ExampleKind): void;
+}) {
 	const t = useT();
 	const h = t.home;
 	const [lang] = useLang();
+	const use = page === "home" ? null : USE_COPY[page][lang];
 	const [over, setOver] = useState(false);
 	// The example on show in the hero; "Try an example" in the bar opens this one.
-	const [kind, setKind] = useState<ExampleKind>("invitation");
+	const [kind, setKind] = useState<ExampleKind>(page === "home" ? "invitation" : USE_KIND[page]);
 	const names = EXAMPLE[lang].names;
 
 	return (
@@ -61,12 +72,14 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 			<main>
 				<section className="wf-home-wrap wf-home-hero">
 					<div className="wf-home-copy">
-						<h1 className="wf-home-title">
-							{h.title((word) => (
-								<span className="wf-serif">{word}</span>
-							))}
+						<h1 className={`wf-home-title${use ? " wf-home-title-use" : ""}`}>
+							{use
+								? use.h1
+								: h.title((word) => (
+										<span className="wf-serif">{word}</span>
+									))}
 						</h1>
-						<p className="wf-home-lead">{h.lead}</p>
+						<p className="wf-home-lead">{use ? use.lead : h.lead}</p>
 						<FileDrop accept={IMAGES} onFile={onFile} className="wf-drop-home">
 							<span className="wf-drop-icon">
 								<Icon name="image" size={28} />
@@ -126,6 +139,19 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 					</ol>
 				</section>
 
+				{use && (
+					<section className="wf-home-wrap wf-home-section">
+						<h2 className="wf-home-h2">{use.about.title}</h2>
+						<dl className="wf-home-facts">
+							{use.about.points.map(([title, text]) => (
+								<Fact key={title} title={title}>
+									{text}
+								</Fact>
+							))}
+						</dl>
+					</section>
+				)}
+
 				<section className="wf-home-wrap wf-home-section">
 					<h2 className="wf-home-h2">{h.trustTitle}</h2>
 					<dl className="wf-home-facts">
@@ -136,6 +162,20 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 						))}
 					</dl>
 				</section>
+
+				{use && (
+					<section className="wf-home-wrap wf-home-section">
+						<h2 className="wf-home-h2">{h.faqTitle}</h2>
+						<dl className="wf-home-faq">
+							{use.faq.map(([q, a]) => (
+								<div key={q}>
+									<dt>{q}</dt>
+									<dd>{a}</dd>
+								</div>
+							))}
+						</dl>
+					</section>
+				)}
 
 				<section className="wf-home-wrap wf-home-section wf-home-end">
 					<h2 className="wf-home-h2">{h.endTitle}</h2>
@@ -157,6 +197,18 @@ export function HomePage({ onFile, onExample }: { onFile(file: File): void; onEx
 					</ul>
 				</section>
 			</main>
+			<nav className="wf-home-wrap wf-home-uses" aria-label={h.usesTitle}>
+				<h2>{h.usesTitle}</h2>
+				<ul>
+					{USE_IDS.map((id) => (
+						<li key={id}>
+							<a href={PAGE_PATH[id][lang]} aria-current={id === page ? "page" : undefined}>
+								{USE_COPY[id][lang].nav}
+							</a>
+						</li>
+					))}
+				</ul>
+			</nav>
 			<footer className="wf-home-foot">
 				<MadeBy />
 				<a className="wf-foot-link" href={GITHUB_URL} target="_blank" rel="noreferrer">
@@ -373,11 +425,11 @@ function Step({ n, title, art, children }: { n: number; title: string; art: Reac
 	);
 }
 
-function Fact({ icon, title, children }: { icon: IconName; title: string; children: ReactNode }) {
+function Fact({ icon, title, children }: { icon?: IconName; title: string; children: ReactNode }) {
 	return (
 		<div>
 			<dt>
-				<Icon name={icon} size={20} />
+				{icon && <Icon name={icon} size={20} />}
 				{title}
 			</dt>
 			<dd>{children}</dd>

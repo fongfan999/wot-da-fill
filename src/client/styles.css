@@ -837,6 +837,16 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 .wf-home-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-8); margin: 0; }
 .wf-home-facts dt { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1); font-size: 16px; line-height: 1.3; font-weight: 600; }
 .wf-home-facts dd { margin: 0; color: var(--muted); text-wrap: pretty; }
+.wf-home-title-use { font-size: 48px; line-height: 1.05; }
+.wf-home-faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8) var(--space-12); margin: 0; }
+.wf-home-faq dt { margin-bottom: var(--space-2); font-size: 17px; line-height: 1.35; font-weight: 600; text-wrap: balance; }
+.wf-home-faq dd { margin: 0; color: var(--muted); line-height: 1.55; text-wrap: pretty; }
+.wf-home-uses { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: var(--space-2) var(--space-6); padding-top: var(--space-6); padding-bottom: var(--space-6); border-top: 1px solid var(--line); }
+.wf-home-uses h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+.wf-home-uses ul { display: contents; list-style: none; }
+.wf-home-uses a { color: var(--ink); font-size: 14px; text-decoration: none; }
+.wf-home-uses a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
+.wf-home-uses a[aria-current="page"] { color: var(--accent); }
 .wf-home-end { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); text-align: center; }
 .wf-home-end .wf-home-h2 { margin-bottom: 0; }
 .wf-home-end p { margin: 0; max-width: 52ch; color: var(--muted); }
@@ -924,6 +934,8 @@ dialog.wf-dialog::backdrop { background: var(--backdrop); }
 	.wf-home-h2 { font-size: 30px; margin-bottom: var(--space-6); }
 	.wf-home-steps { grid-template-columns: minmax(0, 1fr); }
 	.wf-home-facts { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+	.wf-home-faq { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+	.wf-home-title-use { font-size: 34px; }
 	.wf-home-section { padding-top: var(--space-12); padding-bottom: var(--space-12); }
 	.wf-drop-home .wf-btn { width: 100%; }
 	/* On a phone the list is wider and set smaller, so whole names show. */
