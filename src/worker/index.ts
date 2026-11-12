@@ -179,7 +179,13 @@ export default {
 	async fetch(request, env, ctx) {
 		const url = new URL(request.url);
 		if (url.pathname.startsWith("/api/")) return app.fetch(request, env, ctx);
-		const response = url.pathname.startsWith("/t/") ? await shareLink(request, env) : await env.ASSETS.fetch(request);
+		let response = url.pathname.startsWith("/t/") ? await shareLink(request, env) : await env.ASSETS.fetch(request);
+		// Cloudflare serves .txt as plain "text/plain", which browsers read as Windows-1252, so the
+		// Vietnamese in llms.txt comes out garbled. Every text file here is UTF-8; say so.
+		if (response.headers.get("content-type") === "text/plain") {
+			response = new Response(response.body, response);
+			response.headers.set("content-type", "text/plain; charset=utf-8");
+		}
 		logVisit(env.VISITS, request, url, response);
 		return response;
 	},
